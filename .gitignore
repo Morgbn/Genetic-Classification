@@ -1,0 +1,6 @@
+*.txt
+*.odt
+.~*
+
+build
+lib/*
