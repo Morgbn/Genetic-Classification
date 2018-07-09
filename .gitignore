@@ -1,7 +1,8 @@
 *.txt
-*.odt
 .~*
 
 build
+doc
 bin/*
 lib/*
+test/docs*
