@@ -5,10 +5,12 @@
 #include <string.h>
 
 #include "utilities.h"
+#include "lemma.h"
 #include "tree.h"
 
 typedef struct {
   char * name;
+  int id;
   treeList terms;
 } doc;
 
@@ -19,15 +21,6 @@ typedef struct {
  * @return     tout les documents traités
  */
 doc * getData(const char * path, int * len);
-
-/**
- * Enlever diacritiques et ligatures d'un str,
- * et passe tout en minuscule
- * @param str chaine char à nettoyer
- */
-void cleanStr(unsigned char * str);
-
-char ** readFile(char * pathname, int *size);
 
 void divideAllTreeBy(treeList tree, int n);
 

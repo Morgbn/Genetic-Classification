@@ -6,3 +6,5 @@ doc
 bin/*
 lib/*
 test/docs*
+
+!src/*.txt

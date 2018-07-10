@@ -10,10 +10,12 @@ int main(int argc, char const *argv[]) {
 
   int nDoc = 0;
   doc * data = getData(argv[1], &nDoc);
+  // int nWord = 0;
   for (int i = 0; i < nDoc; i++) {
-    printf("%s\n", data[i].name);
-    displayNodes(data[i].terms, 1);
+    printf("%s %i\n", data[i].name, nNodeSupTo(data[i].terms, 0));
+    // nWord += nNodeSupTo(data[i].terms, 0);
   }
+  // printf("\nNombre de mot au total dans les %i documents : %i\n", nDoc, nWord);
 
   return 0;
 }

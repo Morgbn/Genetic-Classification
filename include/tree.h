@@ -61,4 +61,13 @@ void addToTree(treeList head, char *str, float val, float noVal);
  */
 treeList getNode(treeList head, char *name);
 
+/**
+ * Trouver le nombre de valeur supérieur à un nbr
+ * (f recursive)
+ * @param  head tête de l'arbre
+ * @param  nb   nombre
+ * @return      nombre de valeur attaché à l'abre, vérifiant (val > nb)
+ */
+int nNodeSupTo(treeList head, int nb);
+
 #endif
