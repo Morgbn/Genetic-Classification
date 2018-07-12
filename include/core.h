@@ -26,4 +26,11 @@ void divideAllTreeBy(treeList tree, int n);
 
 void addDoc(doc ** data, int * len, char * name, treeList terms);
 
+/**
+ * Allouer un pointeur sur un float
+ * @param  f float
+ * @return   pointeur sur f
+ */
+float * floatToPfloat(float f);
+
 #endif

@@ -1,22 +1,22 @@
 #include "utilities.h"
 
-char ** readFile(const char * pathname, int *size) {
+char ** readFile(const char * pathname, int *size, int keepNumber) {
   FILE *fp = fopen (pathname, "r");
   if (fp == NULL) usage("error reading a file");
 
   unsigned char buf[1024];
   int len = 0;
-  char **terms = malloc(1 * sizeof(char *));
+  char **terms = (char **) malloc(1 * sizeof(char *));
   if (terms == NULL) usage("error malloc in readFile");
 
   while (fscanf(fp, "%s", buf) != EOF) { // lire du fr, avec des accents
-    cleanStr(buf);
+    cleanStr(buf, keepNumber);
     char *ch;
     ch = strtok((char *) buf, " "); // redécouper les espaces
     while (ch != NULL) {
       terms = (char**) realloc(terms, ++len * sizeof(char *));
       if (terms == NULL) usage("error realloc in readFile");
-      terms[len-1] = malloc(strlen(ch) + 1);
+      terms[len-1] = (char *) malloc(strlen(ch) + 1);
       if (terms[len-1] == NULL) usage("error malloc in readFile");
       strcpy(terms[len-1], ch);
       ch = strtok(NULL, " ,");
@@ -27,7 +27,7 @@ char ** readFile(const char * pathname, int *size) {
   return terms;
 }
 
-void cleanStr(unsigned char * str) {
+void cleanStr(unsigned char * str, int keepNumber) {
   int k = 0;
   for (int i = 0; str[i] != '\0'; i++) {
     if (str[i] == 195 && str[i+1] != '\0') { // sur 2 octets
@@ -66,7 +66,11 @@ void cleanStr(unsigned char * str) {
     else if (str[i] >= 97 && str[i] <= 122) { // déjà en minuscule [a-z]
       str[k] = str[i];                        // le garder
     }
-    else str[k] = ' '; // autre char spéciaux & nombres remplacé par ' '
+    else if (str[i] >= '0' && str[i] <= '9') { // nombres
+      if (keepNumber) str[k] = str[i];
+      else str[k] = ' ';
+    }
+    else str[k] = ' '; // autre char spéciaux remplacé par ' '
     k++;
   }
   str[k] = '\0';
