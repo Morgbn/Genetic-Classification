@@ -95,6 +95,7 @@ void freeNode(treeList aNode, int freeChilds, int freeVal) {
   }
   if (aNode->nChilds == 0) {                   // node inutile, rien après
     treeList parent = aNode->parent;
+    if (parent == NULL) return;                // ne pas supprimer racine de l'abre !
     int j = 0;
     for (int i = 0; i < parent->nChilds-1; i++) {
       if (parent->childs[i]->c == aNode->c) j = 1;

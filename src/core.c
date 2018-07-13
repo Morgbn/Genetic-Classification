@@ -1,5 +1,7 @@
 #include "core.h"
 
+const float threshold = .01;
+
 doc * getData(const char * path, int * len) {
   struct dirent *file;
   DIR *dr = opendir(path);
@@ -30,7 +32,15 @@ doc * getData(const char * path, int * len) {
       else // sinon l'ajouter
         addToTree(aDoc, terms[i], floatToPfloat(1));
     }
+    nTerm = nLeaf(aDoc);
     divideAllTreeBy(aDoc, nTerm);            // ÷ le nb d'occurrence par le nb de terme
+
+    float sum = getSumFreq(aDoc);            // somme des fréquences des mots
+    float fAv = sum / nTerm;                 // fréquence moyenne
+    float min = fAv-fAv*threshold;           // seuil +- 25% de la moyenne
+    float max = fAv+fAv*threshold;
+    applyLuhn(aDoc, min, max);               // application de la conjecture de Luhn
+
     addDoc(&data, &nDoc, pathname, aDoc);    // l'ajouter aux données
   }
 

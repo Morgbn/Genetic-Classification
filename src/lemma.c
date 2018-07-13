@@ -67,3 +67,26 @@ int rmFrFem(char * word) {
     { word[len]='\0'; len--; }
   return len;
 }
+
+float getSumFreq(treeList head) {
+  float n = head->val ? *(float *) head->val : 0;
+  for (int j = 0; j < head->nChilds; j++)
+    n += getSumFreq(head->childs[j]);
+  return n;
+}
+
+void applyLuhn(treeList head, float min, float max) {
+  if (head->val) {
+    if (*(float *) head->val < min
+      || *(float *) head->val > max)  // freq en dehors du seuil
+        freeNode(head,0,1);           // ne pas garder le mot
+  }
+  int oldLen = head->nChilds;
+  for (int j = 0; j < head->nChilds; j++) {
+    applyLuhn(head->childs[j], min, max);
+    if (head->nChilds != oldLen) { // changement de taille (suppression d'un el)
+      oldLen = head->nChilds;
+      j--;
+    }
+  }
+}
