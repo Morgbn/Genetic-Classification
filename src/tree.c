@@ -86,38 +86,28 @@ int nLeaf(treeList head) {
   return n;
 }
 
-void freePathToNode(treeList aNode) {
-  freeNodeParents(aNode);
-  deleteNode(aNode, 1, 0);
-}
-
-void freeNodeParents(treeList child) {
-  if (child->parent) {                  // si parent alloué
-    if (child->parent->nChilds < 2) {   // si n'a pas d'autre enfant
-      if (child->parent->val == NULL) { // si n'a pas de valeur attaché
-        freeNodeParents(child->parent); // libérer aussi grand-parents
-        deleteNode(child->parent, 1, 0);// libérer parents
-      }
-    } else {                            // si a d'autre enfant
-      treeList p = child->parent;
-      int j = 0;
-      for (int i = 0; i < p->nChilds-1; i++) {
-        if (p->childs[i]->c == child->c) j++; // chercher la position de l'enfant à supprimer
-        p->childs[i] = p->childs[i+j];  // décaler les enfants
-      }
-    }
-    child->parent->nChilds--;
-  }
-}
-
-void deleteNode(treeList aNode, int delVal, int recursively) {
-  if (delVal && aNode->val) free(aNode->val);
-  if (recursively && aNode->nChilds > 0) { // supprimer les enfants
+void freeNode(treeList aNode, int freeChilds, int freeVal) {
+  if (freeChilds) {                            // supprimer les enfants
     for (int i = 0; i < aNode->nChilds; i++)
-      deleteNode(aNode->childs[i], delVal, recursively);
+      freeNode(aNode->childs[i], 0, 0);
     free(aNode->childs);
+    aNode->nChilds = 0;
   }
-  free(aNode);
+  if (aNode->nChilds == 0) {                   // node inutile, rien après
+    treeList parent = aNode->parent;
+    int j = 0;
+    for (int i = 0; i < parent->nChilds-1; i++) {
+      if (parent->childs[i]->c == aNode->c) j = 1;
+      parent->childs[i] = parent->childs[i+j]; // → décaler les enfants
+    }
+    parent->childs[parent->nChilds-1] = NULL;  // au cas ou
+    aNode->parent->nChilds--;
+    if (parent->nChilds == 0 && !parent->val) // node parent inutile
+      freeNode(parent, 0, freeVal);
+    free(aNode);
+  }
+  if (freeVal && aNode->val) free(aNode->val); // libérer la valeur attaché
+  else aNode->val = NULL;                      // ou juste supprimer le pointeur
 }
 
 #if TEST
@@ -142,7 +132,20 @@ int main(int argc, char const *argv[]) {
   treeList c = initTree();
   addToTree(c, (char *) "ok", (void *) "dacc");
   addToTree(c, (char *) "op", (void *) "sudo");
-  addToTree(c, (char *) "dacc", (void *) "ok");
+  addToTree(c, (char *) "dacc", (void *) "del2");
+  addToTree(c, (char *) "dac", (void *) "del1");
+  addToTree(c, (char *) "daz", (void *) "apres");
+  displayNodes(c, 1, String);
+  treeList aNode = getNode(c, "dac");
+  displayNodes(aNode, 1, String);
+  freeNode(aNode, 0, 0);
+  displayNodes(c, 1, String);
+
+  freeNode(getNode(c, "dacc"), 0, 0);
+  displayNodes(c, 1, String);
+
+  addToTree(c, (char *) "opppp", (void *) "del3");
+  freeNode(getNode(c, "opppp"), 0, 0);
   displayNodes(c, 1, String);
 
   return 0;

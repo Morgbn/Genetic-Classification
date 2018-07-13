@@ -80,24 +80,11 @@ treeList getNode(treeList head, char *name);
 int nLeaf(treeList head);
 
 /**
- * Supprimer les parents inutiles (qui ne porte pas de valeur) d'un noeud
- * (f recursive)
- * @param child noeud
+ * Supprimer un noeud de l'arbre
+ * @param aNode      noeud
+ * @param freeChilds 1=supprimer tout les enfants, 0 sinon
+ * @param freeVal    1=supprimer les valeurs attachées, 0 sinon
  */
-void freeNodeParents(treeList child);
-
-/**
-* Supprimer un/des noeuds d'un arbre (f recursive)
-* @param node        noeud
-* @param delVal      1 = supprimer valeur attaché, 0 sinon
-* @param recursively 1 = supprimer enfants, 0 sinon
-*/
-void deleteNode(treeList aNode, int delVal, int recursively);
-
-/**
- * Supprimer un noeud et tout les parents qui y mène, parents maitenant inutiles
- * @param node noeud
- */
-void freePathToNode(treeList aNode);
+void freeNode(treeList aNode, int freeChilds, int freeVal);
 
 #endif
