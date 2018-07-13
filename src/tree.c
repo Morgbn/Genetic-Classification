@@ -11,11 +11,14 @@ treeList newNode(char c, void *val) {
   aNode->val = val;
   aNode->nChilds = 0;
   aNode->childs = NULL;
+  aNode->parent = NULL;
   return aNode;
 }
 
 treeList appendNode(treeList tree, char c, void *val) {
   treeList child = newNode(c, val);
+  child->parent = tree;
+
   tree->nChilds += 1;
   tree->childs = (struct node **) realloc(tree->childs, tree->nChilds * sizeof(struct node));
   if (tree->childs == NULL) usage("error realloc in appendNode");
@@ -41,6 +44,13 @@ void displayNodes(treeList aNode, int ret, type t) {
   for (int i = 0; i < aNode->nChilds; i++) // afficher la suite (les enfants)
     displayNodes(aNode->childs[i], 0, t);
   printf(")%s", ret ? "\n" : " "); // fermer liste
+}
+
+void displayTreePath(treeList aNode, int ret) {
+  if (aNode == NULL) return;
+  displayTreePath(aNode->parent, 0);
+  printf("%c", aNode->c);
+  if (ret) printf("\n");
 }
 
 void addToTree(treeList head, char *str, void *val) {
@@ -74,6 +84,40 @@ int nLeaf(treeList head) {
   for (int j = 0; j < head->nChilds; j++)
     n += nLeaf(head->childs[j]);
   return n;
+}
+
+void freePathToNode(treeList aNode) {
+  freeNodeParents(aNode);
+  deleteNode(aNode, 1, 0);
+}
+
+void freeNodeParents(treeList child) {
+  if (child->parent) {                  // si parent alloué
+    if (child->parent->nChilds < 2) {   // si n'a pas d'autre enfant
+      if (child->parent->val == NULL) { // si n'a pas de valeur attaché
+        freeNodeParents(child->parent); // libérer aussi grand-parents
+        deleteNode(child->parent, 1, 0);// libérer parents
+      }
+    } else {                            // si a d'autre enfant
+      treeList p = child->parent;
+      int j = 0;
+      for (int i = 0; i < p->nChilds-1; i++) {
+        if (p->childs[i]->c == child->c) j++; // chercher la position de l'enfant à supprimer
+        p->childs[i] = p->childs[i+j];  // décaler les enfants
+      }
+    }
+    child->parent->nChilds--;
+  }
+}
+
+void deleteNode(treeList aNode, int delVal, int recursively) {
+  if (delVal && aNode->val) free(aNode->val);
+  if (recursively && aNode->nChilds > 0) { // supprimer les enfants
+    for (int i = 0; i < aNode->nChilds; i++)
+      deleteNode(aNode->childs[i], delVal, recursively);
+    free(aNode->childs);
+  }
+  free(aNode);
 }
 
 #if TEST
