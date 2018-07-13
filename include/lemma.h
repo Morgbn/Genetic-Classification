@@ -13,13 +13,15 @@ void initLemma(const char *stopPath, treeList stopList, const char *wordPath, tr
 /**
  * Enléve le pluriel d'un mot en français
  * @param  word mot
+ * @return      taille du mot lemmatisé
  */
-void rmFrPlural(char * word);
+int rmFrPlural(char * word);
 
 /**
  * Enléve le féminin d'un mot en français
  * @param  word mot
+ * @return      taille du mot lemmatisé
  */
-void rmFrFem(char * word);
+int rmFrFem(char * word);
 
 #endif

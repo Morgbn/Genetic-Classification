@@ -12,10 +12,10 @@ void initLemma(const char *stopPath, treeList stopList, const char *wordPath, tr
   for (int i = 0; i < len; i++) {
     if (wordListStr[i][0] >= '0' && wordListStr[i][0] <= '9') { // nombre
       int n = atoi(wordListStr[i++]);
-      char *infi = wordListStr[i++]; // infinitif
-      for (int j = 0; j < n; j++)
+      char *infi = wordListStr[i]; // infinitif
+      for (int j = 0; j < n+1; j++)
         addToTree(wordList, wordListStr[i+j], infi); // conjugaison<->infinitif
-      i += n-1;
+      i += n;
     }
     else usage("error format file verb.txt");
   }
@@ -27,17 +27,18 @@ void lemmatisation(char **words, int len, treeList stopList, treeList wordList) 
       words[i] = NULL;
       continue;
     }
-    treeList node;
-    if ((node = getNode(wordList, words[i]))) { // verbe
+    treeList node = NULL;
+    if ((node = getNode(wordList, words[i])) && node->val) { // verbe conjugué
       words[i] = (char *) node->val;
       continue;
     }
-    rmFrPlural(words[i]); // sinon enlever pluriel
-    rmFrFem(words[i]);    // et enlever féminin
+    rmFrPlural(words[i]);        // sinon enlever pluriel
+    int len = rmFrFem(words[i]); // et enlever féminin
+    if (len < 2) words[i] = NULL;
   }
 }
 
-void rmFrPlural(char * word) {
+int rmFrPlural(char * word) {
   int len = strlen(word)-1;
 
   if (len > 4) {
@@ -51,9 +52,10 @@ void rmFrPlural(char * word) {
   if (word[len]=='s') {
     word[len]='\0'; len--;
   }
+  return len;
 }
 
-void rmFrFem(char * word) {
+int rmFrFem(char * word) {
   int len = strlen(word)-1;
   // if (word[len]=='r')
   //   { word[len]='\0'; len--; }
@@ -62,5 +64,6 @@ void rmFrFem(char * word) {
   if (word[len]=='e')
     { word[len]='\0'; len--; }
   if (word[len] == word[len-1])
-    word[len]='\0';
+    { word[len]='\0'; len--; }
+  return len;
 }
