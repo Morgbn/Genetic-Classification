@@ -18,11 +18,12 @@ extern const float threshold; // seuil pr Luhn
 
 /**
  * Lire les fichiers texte d'un dossier, et les traiter
- * @param path chemin vers le dossier
- * @param len  nombre de documents traités
- * @return     tout les documents traités
+ * @param  path   chemin vers le dossier
+ * @param  len    nombre de documents traités
+ * @param  toLemm 1=lemmatisation & Luhn, 0 sinon
+ * @return        tout les documents traités
  */
-doc * getData(const char * path, int * len);
+doc * getData(const char * path, int * len, int toLemm);
 
 /**
  * Diviser tout l'arbre par un entier

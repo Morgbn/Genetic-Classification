@@ -2,7 +2,7 @@
 
 const float threshold = .01;
 
-doc * getData(const char * path, int * len) {
+doc * getData(const char * path, int * len, int toLemm) {
   struct dirent *file;
   DIR *dr = opendir(path);
   if (dr == NULL) usage("Problème avec le dossier.");
@@ -20,7 +20,9 @@ doc * getData(const char * path, int * len) {
 
     int nTerm;
     char **terms = readFile(pathname, &nTerm, 0);
-    lemmatisation(terms, nTerm, stopList, wordList); // lemmatiser tt les mots
+
+    if (toLemm)
+      lemmatisation(terms, nTerm, stopList, wordList); // lemmatiser tt les mots
 
     treeList node, aDoc = initTree();
     for (int i = 0; i < nTerm; i++) {
@@ -35,11 +37,13 @@ doc * getData(const char * path, int * len) {
     nTerm = nLeaf(aDoc);
     divideAllTreeBy(aDoc, nTerm);            // ÷ le nb d'occurrence par le nb de terme
 
-    float sum = getSumFreq(aDoc);            // somme des fréquences des mots
-    float fAv = sum / nTerm;                 // fréquence moyenne
-    float min = fAv-fAv*threshold;           // seuil +- 25% de la moyenne
-    float max = fAv+fAv*threshold;
-    applyLuhn(aDoc, min, max);               // application de la conjecture de Luhn
+    if (toLemm) {
+      float sum = getSumFreq(aDoc);            // somme des fréquences des mots
+      float fAv = sum / nTerm;                 // fréquence moyenne
+      float min = fAv-fAv*threshold;           // seuil +- 25% de la moyenne
+      float max = fAv+fAv*threshold;
+      applyLuhn(aDoc, min, max);               // application de la conjecture de Luhn
+    }
 
     addDoc(&data, &nDoc, pathname, aDoc);    // l'ajouter aux données
   }
