@@ -10,3 +10,4 @@ test/docs*
 !src/*.txt
 
 codetest/
+resources/

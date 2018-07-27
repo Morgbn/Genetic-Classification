@@ -39,13 +39,6 @@ int rmFrPlural(char * word);
 int rmFrFem(char * word);
 
 /**
- * Calculer la somme des fréquences
- * @param  head tête de l'arbre
- * @return      somme
- */
-float getSumFreq(treeList head);
-
-/**
  * Appliquer la conjecture de Luhn (f recursive)
  * @param head tête de l'arbre
  * @param min  seuil inférieur

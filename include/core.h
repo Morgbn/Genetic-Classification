@@ -8,22 +8,21 @@
 #include "lemma.h"
 #include "tree.h"
 
-typedef struct {
+typedef struct _doc{
   char * name;
   int id;
   treeList terms;
+  double * dist;
 } doc;
-
-extern const float threshold; // seuil pr Luhn
 
 /**
  * Lire les fichiers texte d'un dossier, et les traiter
  * @param  path   chemin vers le dossier
  * @param  len    nombre de documents traités
- * @param  toLemm 1=lemmatisation & Luhn, 0 sinon
+ * @param  toLuhn 1=appliquer conjecture de Luhn, 0 sinon
  * @return        tout les documents traités
  */
-doc * getData(const char * path, int * len, int toLemm);
+doc * getData(const char * path, int * len, int toLuhn);
 
 /**
  * Diviser tout l'arbre par un entier
@@ -39,13 +38,21 @@ void divideAllTreeBy(treeList tree, int n);
  * @param name  nom du document
  * @param terms termes du document
  */
-void addDoc(doc ** data, int * len, char * name, treeList terms);
+void addDoc(doc **data, int len, char * name, treeList terms);
 
 /**
  * Allouer un pointeur sur un float
  * @param  f float
  * @return   pointeur sur f
  */
-float * floatToPfloat(float f);
+float * pFloat(float f);
+
+/**
+ * Calculer la distance entre deux treeList
+ * @param  a arbre a
+ * @param  b arbre b
+ * @return   distance
+ */
+double distBtwDoc(treeList a, treeList b);
 
 #endif

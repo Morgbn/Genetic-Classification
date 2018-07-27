@@ -8,19 +8,17 @@ int main(int argc, char const *argv[]) {
     usage(error);
   }
 
-  int nCat = 0;
+  int nCat = 0, nDoc = 0;
   doc * cats = getData(argv[2], &nCat, 0);
-  for (int i = 0; i < nCat; i++) {
-    printf("%s %i\n", cats[i].name, nLeaf(cats[i].terms));
-    displayNodes(cats[i].terms, 1, Float);
+  doc * docs = getData(argv[1], &nDoc, 1);
+  for (int i = 0; i < nDoc; i++) {                      // calculer distance pr chq doc
+    docs[i].dist = (double *) malloc(nCat * sizeof(double *));
+    if (docs[i].dist == NULL) usage("error malloc in ...");
+
+    for (int j = 0; j < nCat; j++) {                    // avec chq catégorie
+      docs[i].dist[cats[j].id] = distBtwDoc(docs[i].terms, cats[j].terms);
+      printf("D(%s, %s) = %g\n", docs[i].name, cats[j].name, docs[i].dist[cats[j].id]);
+    }
   }
-  int nDoc = 0;
-  doc * data = getData(argv[1], &nDoc, 1);
-  int nWord = 0;
-  for (int i = 0; i < nDoc; i++) {
-    printf("%s %i\n", data[i].name, nLeaf(data[i].terms));
-    nWord += nLeaf(data[i].terms);
-  }
-  printf("Nombre de mot au total dans les %i documents : %i\n", nDoc, nWord);
   return 0;
 }

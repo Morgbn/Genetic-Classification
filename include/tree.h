@@ -49,11 +49,39 @@ treeList appendNode(treeList tree, char c, void *val);
 void displayNodes(treeList aNode, int ret, type t);
 
 /**
+ * Trouver le chemin vers un noeud de l'arbre
+ * @param  aNode     noeud
+ * @param  skipFirst 1=sauter la racine, 0 sinon
+ * @return           chemin
+ */
+char * getTreePath(treeList aNode, int skipFirst);
+
+/**
  * Afficher le chemin vers un noeud de l'arbre (f recursive)
  * @param aNode noeud
  * @param ret   1=retour à la ligne, 0 sinon
  */
 void displayTreePath(treeList aNode, int ret);
+
+/**
+ * Afficher les valeurs d'un arbre (f recursive)
+ * @param head   tête de l'arbre
+ * @param format format
+ */
+void displayVals(treeList head, type t);
+
+/**
+ * Afficher tous les chemins des noeuds auxquels est attachée une valeur (f recursive)
+ * @param head tête de l'arbre
+ */
+void displayPaths(treeList head);
+
+/**
+ * Afficher tous les chemins et valeurs (f recursive)
+ * @param head   tête de l'arbre
+ * @param format format
+ */
+void displayPathsVals(treeList head, type t);
 
 /**
  * Ajouter des élements à l'arbre (f recursive)

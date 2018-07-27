@@ -46,11 +46,72 @@ void displayNodes(treeList aNode, int ret, type t) {
   printf(")%s", ret ? "\n" : " "); // fermer liste
 }
 
+char * getTreePath(treeList aNode, int skipFirst) {
+  if (aNode == NULL) return NULL;
+  char path[128];
+  int len = 0;
+  path[len++] = aNode->c;
+  treeList pnode = aNode;
+  while ((pnode = pnode->parent)) {
+    path[len++] = pnode->c;
+  }
+  if (skipFirst) --len; // passer la racine
+  path[len] = '\0';
+  char tmp;
+  for (int i = 0; i < len / 2; i++) { // reverse
+    tmp = path[i];
+    path[i] = path[len - i - 1];
+    path[len - i - 1] = tmp;
+  }
+  return strdup(path);
+}
+
 void displayTreePath(treeList aNode, int ret) {
   if (aNode == NULL) return;
-  displayTreePath(aNode->parent, 0);
-  printf("%c", aNode->c);
+  printf("%s", getTreePath(aNode, 0));
   if (ret) printf("\n");
+}
+
+void displayVals(treeList head, type t) {
+  if (head == NULL) return;
+  if (head->val) {
+    switch (t) {
+      case Char:   printf("%c\n", *(char *)  head->val); break;
+      case String: printf("\"%s\"\n",  (char *)  head->val); break;
+      case Float:  printf("%g\n", *(float *) head->val); break;
+      case Int:    printf("%i\n", *(int *)   head->val); break;
+    }
+  }
+  for (int i = 0; i < head->nChilds; i++) // afficher la suite (les enfants)
+    displayVals(head->childs[i], t);
+}
+
+void displayPaths(treeList head) {
+  if (head == NULL) return;
+  if (head->val) {
+    char * path = getTreePath(head, 1);
+    if (path != NULL) printf("%s\n", path);
+  }
+  for (int i = 0; i < head->nChilds; i++) // afficher la suite (les enfants)
+    displayPaths(head->childs[i]);
+}
+
+void displayPathsVals(treeList head, type t) {
+  if (head == NULL) return;
+  if (head->val) {
+    char * path = getTreePath(head, 1);
+    if (path != NULL) {
+      printf("%s: ", path);
+      switch (t) {
+        case Char:   printf("%c\n", *(char *)  head->val); break;
+        case String: printf("\"%s\"\n",  (char *)  head->val); break;
+        case Float:  printf("%g\n", *(float *) head->val); break;
+        case Int:    printf("%i\n", *(int *)   head->val); break;
+      }
+    }
+  }
+  for (int i = 0; i < head->nChilds; i++) // afficher la suite (les enfants)
+    displayPathsVals(head->childs[i], t);
 }
 
 void addToTree(treeList head, char *str, void *val) {
@@ -93,6 +154,10 @@ void freeNode(treeList aNode, int freeChilds, int freeVal) {
     free(aNode->childs);
     aNode->nChilds = 0;
   }
+
+  if (freeVal && aNode->val) free(aNode->val); // libérer la valeur attaché
+  aNode->val = NULL;                           // supprimer le pointeur
+
   if (aNode->nChilds == 0) {                   // node inutile, rien après
     treeList parent = aNode->parent;
     if (parent == NULL) return;                // ne pas supprimer racine de l'abre !
@@ -102,13 +167,11 @@ void freeNode(treeList aNode, int freeChilds, int freeVal) {
       parent->childs[i] = parent->childs[i+j]; // → décaler les enfants
     }
     parent->childs[parent->nChilds-1] = NULL;  // au cas ou
-    aNode->parent->nChilds--;
+    parent->nChilds--;
     if (parent->nChilds == 0 && !parent->val) // node parent inutile
       freeNode(parent, 0, freeVal);
     free(aNode);
   }
-  if (freeVal && aNode->val) free(aNode->val); // libérer la valeur attaché
-  else aNode->val = NULL;                      // ou juste supprimer le pointeur
 }
 
 #if TEST
@@ -148,6 +211,14 @@ int main(int argc, char const *argv[]) {
   addToTree(c, (char *) "opppp", (void *) "del3");
   freeNode(getNode(c, "opppp"), 0, 0);
   displayNodes(c, 1, String);
+
+  aNode = getNode(c, "daz");
+  char * path = getTreePath(aNode, 1);
+  if (path != NULL) printf("%s\n", path);
+
+  displayVals(c, String);
+  displayPaths(c);
+  displayPathsVals(a, Float);
 
   return 0;
 }
