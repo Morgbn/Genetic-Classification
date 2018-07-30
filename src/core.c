@@ -14,38 +14,38 @@ doc * getData(const char * path, int * len, int toLuhn) {
   int nDoc = 0;
   doc *docList = NULL;
   while ((file = readdir(dr)) != NULL) {
-    if ( file->d_type != DT_REG ) continue;  // dossier → passer
+    if ( file->d_type != DT_REG ) continue;   // dossier → passer
     char pathname[256];
     sprintf(pathname, "%s%s", path, file->d_name);
 
-    int nTerm, sumF = 0; // nb de terme, somme des fréquences des mots
+    int nTerm, sumO = 0; // nb de terme, somme des occurrences
     char **terms = readFile(pathname, &nTerm, 0);
 
     lemmatisation(terms, nTerm, stopList, wordList); // lemmatiser tt les mots
 
     treeList node, aDoc = initTree();
-    printf("%s: %i termes\n", pathname, nTerm);
-
-    for (int i = 0; i < nTerm; i++) {           // pour chq terme
-      if (terms[i] == NULL) {                   // terme supprimé
+    int nTermCpy = nTerm;
+    for (int i = 0; i < nTermCpy; i++) {      // pour chq terme
+      if (terms[i] == NULL) {                 // terme supprimé
+        nTerm--;
         free(terms[i]);
         continue;
       }
       if ((node = getNode(aDoc, terms[i]))) { // chemin existe vers ce terme ?
         if (!node->val)                       // chemin existe ms pas de valeur attachée
-          node->val = pFloat(0);              // y attacher 0
-        (*(float *) node->val)++;             // ajouter une occurrence
+          node->val = pFloat(1);              // y attacher 0
+        else (*(float *) node->val)++;        // ajouter une occurrence
       }
       else                                    // pas de chemin vers le terme ?
         addToTree(aDoc, terms[i], pFloat(1)); // l'ajouter
-      sumF++;
+      sumO++;
     }
     free(terms);
-    nTerm = nLeaf(aDoc);
+    int nbO = nLeaf(aDoc);                    // nombre d'occurrence
     divideAllTreeBy(aDoc, nTerm);             // ÷ le nb d'occurrence par le nb de terme
 
     if (toLuhn) {
-      float fAv = sumF / nTerm;               // fréquence moyenne
+      float fAv = (float) sumO / nbO / nTerm; // fréquence moyenne
       float min = fAv-fAv*threshold;          // seuil +- 25% de la moyenne
       float max = fAv+fAv*threshold;
       applyLuhn(aDoc, min, max);              // application de la conjecture de Luhn
@@ -82,32 +82,30 @@ float * pFloat(float f) {
   return val;
 }
 
-double distBtwDoc_auxA(treeList a, treeList b) {
-  double dist = 0;
-  if (a->val) {
-    treeList el = getNode(b, getTreePath(a, 1)); // chercher le même élément dans b
-    if (!el || !el->val) dist = (double) (*(float *) a->val); // freq du mot ds b = 0
-    else dist = (double) ((*(float *) a->val) - (*(float *) el->val));
-    dist *= dist; // (a-b)²
-  }
-  for (int i = 0; i < a->nChilds; i++)
-    dist += distBtwDoc_auxA(a->childs[i], b);
-  return dist;
-}
-
-double distBtwDoc_auxB(treeList a, treeList b) {
-  double dist = 0;
-  if (b->val) {
-    treeList el = getNode(a, getTreePath(b, 1));  // chercher le même élément dans a
-    if (el) dist = 0; // déjà traité dans distBtwDoc_auxA
-    else dist = (double) (*(float *) b->val); // (-b)² = b²
-    dist *= dist;
-  }
-  for (int i = 0; i < b->nChilds; i++)
-    dist += distBtwDoc_auxB(b->childs[i], a);
-  return dist;
-}
-
 double distBtwDoc(treeList a, treeList b) {
-  return distBtwDoc_auxA(a, b) + distBtwDoc_auxB(a, b);
+  if (!a && !b) return 0;
+
+  float aVal = (a && a->val) ? *(float *) a->val : 0; // valeur de a
+  float bVal = (b && b->val) ? *(float *) b->val : 0; // valeur de b
+  double dist = (aVal - bVal);                        // (a-b)
+  dist *= dist;                                       // au carré
+
+  for (int k = 0; a && (k < a->nChilds); k++) {       // pr tt les enfants de a
+    treeList childB = NULL;
+    for (int j = 0; b && (j < b->nChilds); j++)       // trouver son correspondant
+      if (b->childs[j]->c == a->childs[k]->c)         // dans b
+        childB = b->childs[j];
+    dist += distBtwDoc(a->childs[k], childB);         // descendre avec lui
+  }
+
+  for (int j = 0; b && (j < b->nChilds); j++) {       // pr tt les enfants de b
+    int isIn = 0;
+    for (int k = 0; a && (k < a->nChilds); k++)       // si enfant ds a
+      if (b->childs[j]->c == a->childs[k]->c) {       // ne pas descendre avec lui
+        isIn = 1; break;                              // (déjà fait avant)
+      }
+    if (!isIn) dist += distBtwDoc(NULL, b->childs[j]);// continuer seul
+  }
+
+  return dist;
 }
