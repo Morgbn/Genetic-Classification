@@ -6,5 +6,6 @@
 #include "utilities.h"
 #include "core.h"
 #include "tree.h"
+#include "ga.h"
 
 #endif
