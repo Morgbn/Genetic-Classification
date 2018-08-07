@@ -4,25 +4,53 @@ double GlobalFitness, Average, MaxFit, MinFit;
 Population Pop1, Pop2; // for swapping
 
 /** @global MaxGen maximum de generations */
-short int MaxGen = 50;
+short int MaxGen = 20;
 /** @global ProbCross probabilité crossover */
 double ProbCross = .95;
 /** @global ProbMut probabilité mutation */
+// double ProbMut = .02;
 double ProbMut = .02;
 /** @global PopSize taille population */
 int PopSize = 30;
 // !:::::: temporaire ::::!
-int ChromSize = 18;
+int Bits, K;
+int ChromSize; // max de bit * k
+doc *Docs;
+int NDoc;
+
+void putchrom(Chromo Gtype) {
+  printf("[");
+  for (int p = 0; p < K; p++) {
+    char * bitstr = &(Gtype.A[p * Bits]);
+    printf("%i%s", decodeSpec(bitstr), (p+1==K) ? "" : ", ");
+  }
+  printf("]");
+}
+
+void report(int gen) {
+  printf("------- %i -------\n", gen);
+  for (int i = 0; i < PopSize; i++) {
+    indiv ind = &Pop1.A[i];	// old string
+    putchrom(ind->Gtype);
+    printf(" score = %g\n", ind->Fitness);
+  }
+}
 
 doc *** GA(doc *docs, int nDoc, int * nClu) {
   // const int minClu = 2;
   // const int maxClu = nDoc / 2;
+  Bits = 3;
+  K = 2;
+  ChromSize = Bits * K;
+  Docs = docs;
+  NDoc = nDoc;
 
-  genPops() ;
-	for (int gen = 0 ; gen < MaxGen ; gen ++) {
+  genPops(docs);
+	for (int gen = 0 ; gen < MaxGen ; gen++) {
     scale(&Pop1);
     generate();
     Pop1 = Pop2;
+    report(gen);
   }
 
   // *nClu = 2;
@@ -44,31 +72,53 @@ doc *** GA(doc *docs, int nDoc, int * nClu) {
 
 // application interface specific code ~~~~~~~~~~~~~~~~~
 
-double objectiveFunc(double x) {	// improve contrast
-  const int N = 10;
-	const double coeff = pow(2, ChromSize / 3);
-	return pow(x / coeff, N);
+double objectiveFunc(int * ptype) {
+  double score = 1.e-10;
+  // vérifier que chromo est valide :
+  for (int i = 0; i < K; i++) {
+    if (ptype[i] >= NDoc) return 0;       // si n° invalide → pas de reproduction
+    for (int j = i+1; j < K; j++) {
+      if (ptype[i] == ptype[j]) return 0; // si doublon → pas de reproduction
+    }
+  }
+
+  for (int i = 0; i < NDoc; i++) {        // pr chq document
+    double dj;
+    for (int ki = 0; ki < K; ki++) {      // trouver sa distance minimal
+      double d = Docs[i].dist[ptype[ki]]; // avec le centre ki
+      if (!ki || d < dj) dj = d;
+    }
+    score += dj / NDoc;                  // dj / n
+  }
+  return 1 / score; // score inversé (+ petit = mieux)
 }
 
-double decode(Chromo Gtype)	{
-  int score = 1;
-  // int spec, score = 0, true_score = 0;
-	// int selected[Classifiers] = {0};	// mark if already selected
-	// int scored[StringVals] = {0};	    // mark pattern
-	// for (int performer = 0; performer < Classifiers; performer++)	// for each performer
-	// {	bstring BitString = &Gtype.A[performer * Bits] ;	// point to bitstring
-	// 	spec = decode_spec(BitString, Bits) ;	// get his specialty
-	// 	if (scored[spec])	// already used ?
-	// 		score -= GainRate * scored[spec] ;	// not that good a score
-	// 	else// free field
-	// 	{	if (! (spec > MaxStringVal))	// a valid field ?
-	// 		{	selected[performer] = spec ;	// remember that
-	// 			true_score += yield[performer][spec] ;	// accumulate
-	// 			score += GainRate * yield[performer][spec] ; } }	// accumulate
-	// 	scored[spec]++ ; }	// increment that field anyway...
-	// if (true_score > worth) worth = true_score ;
-	// if (dump) dump_score(selected, true_score, Gtype) ;
-	return score ;
+int * decode(Chromo Gtype)	{
+  int * ptype = (int *) malloc(K * sizeof(int));
+  if (ptype == NULL) usage("error malloc in decode");
+
+  for (int p = 0; p < K; p++) {
+    char * bitstr = &Gtype.A[p * Bits];
+    ptype[p] = decodeSpec(bitstr);
+  }
+	return ptype;
+}
+
+int decodeSpec(char * spec) {
+  int value = 0;
+	for (int B = Bits - 1, power = 1 ; B >= 0 ; B--, power *= 2)
+		value += spec[B] * power;
+	return value;
+}
+
+void makeChromo(allele * chromo, int minSize, int maxSize) {
+  for (int i = 0; i < K*Bits;) {
+    int n = randRange(0, K);         // nb aléatoire entre 0 et K
+    for (int c = Bits-1; c >= 0; c--) {
+      int k = n >> c;
+      chromo[i++] = (k & 1) ? 1 : 0; // converti en binaire
+    }
+  }
 }
 
 // GA engine ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -87,8 +137,7 @@ void genPops() {
     if (ind1->Gtype.A == NULL || ind2->Gtype.A == NULL)
       usage("malloc error in genPops");
 
-		for (int c = 0; c < ChromSize; c++)
-		  ind1->Gtype.A[c] = flip(0.5);	// random bit [0, 1]
+		makeChromo(ind1->Gtype.A, ChromSize, ChromSize);
 		updateIndiv(ind1, 0, 0, 0);
   }
 }
@@ -141,8 +190,8 @@ void generate() {
 int crossover(Chromo * P1, Chromo * P2, Chromo * C1, Chromo * C2) {
   int X;	                        // crossover point to be returned
 
-	if (flip(ProbCross)) X = randRange(1, ChromSize);
-	else X = ChromSize ;
+	if (flip(ProbCross)) X = randRange(1, K) * Bits; // coupé correctement
+	else X = ChromSize;
 
 	for (int k = 0; k < X; k++)	{
     C1->A[k] = mutate(P1->A[k]);	// child 1 from parent 1
@@ -158,6 +207,7 @@ int crossover(Chromo * P1, Chromo * P2, Chromo * C1, Chromo * C2) {
 void updateIndiv(indiv ind, int m1, int m2, int X)	{
 	ind->Ptype = decode(ind->Gtype);	              // phenotype
 	ind->Fitness = objectiveFunc(ind->Ptype);	      // raw adaptation value
+  free(ind->Ptype);
 	ind->Parent_1 = m1;
 	ind->Parent_2 = m2;
 	ind->CrossPoint = X;

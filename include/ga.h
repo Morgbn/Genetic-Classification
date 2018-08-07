@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
+#include <string.h>
 
 #include "utilities.h"
 #include "core.h"
@@ -17,7 +18,8 @@ typedef struct {
 
 typedef struct { // données d'un individu
   Chromo Gtype;
-	double Ptype, Fitness;
+  int * Ptype;
+	double Fitness;
 	int Parent_1, Parent_2, CrossPoint;
 } individual, * indiv;
 
@@ -27,7 +29,7 @@ typedef struct {
 
 /**
  * Genetic Algo
- * largement inspiré de l'AG présenté dans le cours :
+ * basé sur l'AG présenté dans le cours :
  * "modèles discrets du continu techniques d'abstraction" - J.FEAT 2011
  * @param  docs liste de document
  * @param  nDoc nombre de document
@@ -40,17 +42,32 @@ doc *** GA(doc * docs, int nDoc, int * n);
 
 /**
  * Fonction objectif
- * @param  x phenotype d'un individu
- * @return   fitness
+ * @param  ptype phenotype d'un individu
+ * @return       fitness
  */
-double objectiveFunc(double x);
+double objectiveFunc(int * ptype);
 
 /**
  * Décoder un génotype
  * @param  Gtype génotype
  * @return       génotype décodé (score)
  */
-double decode(Chromo Gtype);
+int * decode(Chromo Gtype);
+
+/**
+ * Convertir un morceau de chromosome (bit string)
+ * @param  spec bitstring
+ * @return      valeur
+ */
+int decodeSpec(char * spec);
+
+/**
+ * Créer un chromosome
+ * @param chromo  emplacement du chromosome
+ * @param minSize taille minimum
+ * @param maxSize taille maximum
+ */
+void makeChromo(allele * chromo, int minSize, int maxSize);
 
 // GA engine ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
