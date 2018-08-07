@@ -31,5 +31,8 @@ int main(int argc, char const *argv[]) {
       printf("\t%s\n", clusteredDoc[i][j]->name);
   }
 
+  for (int i = 0; i < nCluster; i++) free(clusteredDoc[i]);
+  free(clusteredDoc);
+
   return 0;
 }

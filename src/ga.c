@@ -56,20 +56,39 @@ doc *** GA(doc *docs, int nDoc, int * nClu) {
     Pop1 = Pop2;
   }
 
-  // *nClu = 2;
-  // doc ***clusters = (doc ***) malloc(*nClu * sizeof(doc **));
-  // if (clusters == NULL) usage("error malloc in GA");
-  // clusters[0] = (doc **) malloc(3 * sizeof(doc));
-  // if (clusters[0] == NULL) usage("error malloc in GA");
-  // clusters[1] = (doc **) malloc(2 * sizeof(doc));
-  // if (clusters[1] == NULL) usage("error malloc in GA");
-  // clusters[0][0] = &docs[1];
-  // clusters[0][1] = &docs[0];
-  // clusters[0][2] = NULL;
-  // clusters[1][0] = &docs[2];
-  // clusters[1][1] = NULL;
-  *nClu = 0;
-  doc *** clusters = NULL;
+  indiv ind;
+  for (int j = 0; j < PopSize; j++) {
+    ind = &Pop1.A[j];
+    if (ind->Fitness == MaxFit) break; // le meilleur clustering trouvé
+  }
+
+  *nClu = K;
+  // faire de la place pour la liste de liste de document
+  doc ***clusters = (doc ***) malloc(K * sizeof(doc **));
+  if (clusters == NULL) usage("error malloc in GA");
+  for (int i = 0; i < K; i++) {
+    clusters[i] = (doc **) malloc((nDoc+2) * sizeof(doc *)); // surement trop
+    if (clusters[i] == NULL) usage("error malloc in GA");
+  }
+  int nIn[K];
+  memset(nIn, 0, K * sizeof(int));
+
+  for (int i = 0; i < nDoc; i++) {        // pr chq document
+    double dmin = 0;
+    int bestK;
+    for (int ki = 0; ki < K; ki++) {      // trouver sa distance minimal
+      int center = decodeSpec(&(ind->Gtype.A[ki * Bits])); // ind->Ptype ???
+      double d = docs[i].dist[center];    // avec l'un des centres
+      if (!ki || d < dmin) {
+        dmin = d;
+        bestK = ki;
+      }
+    }
+    clusters[bestK][nIn[bestK]++] = &docs[i];
+  }
+
+  for (int i = 0; i < K; i++) clusters[i][nIn[i]] = NULL; // pr facilement detecter la fin
+
   return clusters;
 }
 
