@@ -31,12 +31,14 @@ void report(int gen) {
   printf("------- %i -------\n", gen);
   for (int i = 0; i < PopSize; i++) {
     indiv ind = &Pop1.A[i];	// old string
+    printf("(%i) ", i);
     putchrom(ind->Gtype);
     printf(" score = %g\n", ind->Fitness);
   }
 }
 
 doc *** GA(doc *docs, int nDoc, int * nClu) {
+  assert(!(PopSize%2));
   // const int minClu = 2;
   // const int maxClu = nDoc / 2;
   Bits = 3;
@@ -47,10 +49,11 @@ doc *** GA(doc *docs, int nDoc, int * nClu) {
 
   genPops(docs);
 	for (int gen = 0 ; gen < MaxGen ; gen++) {
-    scale(&Pop1);
+    statistics(&Pop1);
+    // scale(&Pop1);
     generate();
-    Pop1 = Pop2;
     report(gen);
+    Pop1 = Pop2;
   }
 
   // *nClu = 2;
@@ -83,7 +86,7 @@ double objectiveFunc(int * ptype) {
   }
 
   for (int i = 0; i < NDoc; i++) {        // pr chq document
-    double dj;
+    double dj = 0;
     for (int ki = 0; ki < K; ki++) {      // trouver sa distance minimal
       double d = Docs[i].dist[ptype[ki]]; // avec le centre ki
       if (!ki || d < dj) dj = d;
@@ -113,7 +116,7 @@ int decodeSpec(char * spec) {
 
 void makeChromo(allele * chromo, int minSize, int maxSize) {
   for (int i = 0; i < K*Bits;) {
-    int n = randRange(0, K);         // nb aléatoire entre 0 et K
+    int n = randRange(0, K+1);       // nb aléatoire entre 0 et K
     for (int c = Bits-1; c >= 0; c--) {
       int k = n >> c;
       chromo[i++] = (k & 1) ? 1 : 0; // converti en binaire
@@ -177,14 +180,16 @@ void scale(Population * pop) {
 }
 
 void generate() {
-  int X ;	                  // crossover point
+  int X ;	                     // crossover point
+  int * picked1 = pick(&Pop1); // select mates
 	for (int z = 0; z < PopSize; z += 2) {
-	  int m1 = pick(&Pop1) ;	// select mate 1
-		int m2 = pick(&Pop1) ;	// select mate 2
+    int m1 = picked1[z];	     // selected mate 1
+		int m2 = picked1[z+1];     // selected mate 2
 		X = crossover(&Pop1.A[m1].Gtype, &Pop1.A[m2].Gtype, &Pop2.A[z].Gtype, &Pop2.A[z+1].Gtype);
 		updateIndiv(&Pop2.A[z], m1, m2, X);
 		updateIndiv(&Pop2.A[z + 1], m1, m2, X);
   }
+  free(picked1);
 }
 
 int crossover(Chromo * P1, Chromo * P2, Chromo * C1, Chromo * C2) {
@@ -213,15 +218,56 @@ void updateIndiv(indiv ind, int m1, int m2, int X)	{
 	ind->CrossPoint = X;
 }
 
-int pick(Population * pop) {
-  double accumulator = 0;
-	double limit = GlobalFitness * floatRand();	// random real number between 0 and 1
-	int mate;
-	for (mate = 0; mate < PopSize; mate++) {
-    accumulator += pop->A[mate].Fitness;
-		if (accumulator > limit) break;
+void shuffleVect(int * a, int len) {
+  int tmp, n;
+
+  for (int i = 0; i < len; i++) {
+    n = randRange(0, len); // prend un index aléaléatoirement
+    tmp  = a[i];
+    a[i] = a[n];           // échange les valeurs a[i] et a[n]
+    a[n] = tmp;
   }
-	return mate < PopSize ? mate : PopSize - 1;
+}
+
+int * pick(Population * pop) {
+  int * picked = NULL, npick = 0;
+  picked = (int *) malloc(PopSize * sizeof(int));
+  if (picked == NULL) usage("error malloc in pick");
+
+  double expected[PopSize]; // nombre de copie attendu pr chq individu
+  int N[PopSize];           // partie entière de expected
+  double sumR = 0;          // somme des restes
+  for (int i = 0; i < PopSize; i++) {
+    expected[i] = pop->A[i].Fitness / round(GlobalFitness / PopSize);
+    N[i] = (int) expected[i];
+    expected[i] -= N[i];    // laisser le reste dans expected
+    sumR += expected[i];
+  }
+
+  // affecte automatiquement à chq individu Ni copies
+  for (int i = 0; i < PopSize; i++)
+    for (int j = 0; j < N[i]; j++) picked[npick++] = i;
+
+  // recalcul probabilité avec ce qui reste
+  for (int i = 0; i < PopSize; i++)
+    if (expected[i]) expected[i] /= sumR;
+
+
+  // roulette avec les restes pr compléter la population
+  int c = npick;
+  for (int i = 0; i < PopSize - c; i++) {
+    double accumulator = 0;
+    double limit = floatRand();	// random real number between 0 and 1
+    int mate;
+    for (mate = 0; mate < PopSize; mate++) {
+      accumulator += expected[mate];
+    	if (accumulator > limit) break;
+    }
+    picked[npick++] = (mate < PopSize) ? mate : PopSize - 1;
+  }
+
+  shuffleVect(picked, PopSize);
+  return picked;
 }
 
 allele mutate(allele bval) {

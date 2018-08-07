@@ -5,6 +5,7 @@
 #include <stdlib.h>
 #include <math.h>
 #include <string.h>
+#include <assert.h>
 
 #include "utilities.h"
 #include "core.h"
@@ -113,11 +114,19 @@ int crossover(Chromo * P1, Chromo * P2, Chromo * C1, Chromo * C2);
 void updateIndiv(indiv ind, int m1, int m2, int X);
 
 /**
- * Sélectioner un individu ds une population
- * @param  pop population
- * @return     individu
+ * Mélanger un vecteur de int
+ * @param a   vecteur
+ * @param len taille du vecteur
  */
-int pick(Population * pop);
+void shuffleVect(int * a, int len);
+
+/**
+ * Sélectioner des individus ds une population
+ * Méthode du reste stochastique
+ * @param  pop population
+ * @return     individus
+ */
+int * pick(Population * pop);
 
 /**
  * Effectuer une mutation (0→1; 1→0)

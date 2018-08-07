@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 
+tput reset
 make clean
 make
 if [ $? == 0 ]; then
