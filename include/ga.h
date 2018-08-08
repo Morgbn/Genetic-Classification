@@ -87,7 +87,7 @@ void putchrom(Chromo Gtype, int K);
 void report(int gen);
 
 /**
- * Collecte statistiques globales
+ * Collecte les statistiques globales
  * @param pop population
  */
 void statistics(Population * pop);

@@ -10,11 +10,11 @@
 typedef enum { Char, String, Float, Int } type;
 
 typedef struct node {
-  char c; // lettre
+  char c;               // lettre
   struct node **childs; // enfant (max 26: a-z)
   struct node *parent;
-  int nChilds; // nombre d'enfant
-  void * val; // valeur attaché à ce noeud
+  int nChilds;          // nombre d'enfant
+  void * val;           // valeur attaché à ce noeud
 } * treeList;
 
 /**

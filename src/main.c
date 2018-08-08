@@ -11,14 +11,14 @@ int main(int argc, char const *argv[]) {
 
   int nDoc = 0;
   doc * docs = getData(argv[1], &nDoc, 1);
-  for (int i = 0; i < nDoc; i++) {                    // calculer distance entre chq doc
+  for (int i = 0; i < nDoc; i++) {        // calculer distance entre chq doc
     docs[i].dist = (double *) malloc((nDoc) * sizeof(double *));
     if (docs[i].dist == NULL) usage("error malloc in ...");
 
-    docs[i].dist[i] = 0;                              // distance a<->a = 0
+    docs[i].dist[i] = 0;                  // distance a<->a = 0
     for (int j = 0; j != i; j++)
-      docs[i].dist[j]                                 // distance a<->b
-        = docs[j].dist[i]                             // égal distance b<->a
+      docs[i].dist[j]                     // distance a<->b
+        = docs[j].dist[i]                 // égal distance b<->a
         = distBtwDoc(docs[i].terms, docs[j].terms);
   }
 
