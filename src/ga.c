@@ -1,21 +1,24 @@
 #include "ga.h"
 
+/**
+ * VARIABLE GLOBAL :
+ * @global MaxGen        maximum de generations
+ * @global PopSize       taille population
+ * @global Bits          nombre de bits pr coder l'information
+ *                       - trouver automatiquement dans ga() -
+ * @global ProbCross     probabilité crossover
+ * @global ProbMut       probabilité mutation
+ * @global GlobalFitness somme des valeurs d'aptitude
+ * @global Average       moyenne des valeurs d'aptitude
+ * @global MaxFit        maximum des valeurs d'aptitude
+ * @global MinFit        minimum des valeurs d'aptitude
+ * @global Pop1          population parent
+ * @global Pop2          population enfant
+ */
+int MaxGen = 20, PopSize = 30, Bits;
+double ProbCross = .95, ProbMut   = .02;
 double GlobalFitness, Average, MaxFit, MinFit;
-Population Pop1, Pop2; // for swapping
-
-/** @global MaxGen maximum de generations */
-short int MaxGen = 20;
-/** @global ProbCross probabilité crossover */
-double ProbCross = .95;
-/** @global ProbMut probabilité mutation */
-// double ProbMut = .02;
-double ProbMut = .02;
-/** @global PopSize taille population */
-int PopSize = 30;
-// !:::::: temporaire ::::!
-int Bits;
-doc *Docs;
-int NDoc;
+Population Pop1, Pop2;
 
 doc *** GA(doc *docs, int nDoc, int * nClu) {
   assert(!(PopSize%2)); // si mvs réglage
@@ -23,18 +26,16 @@ doc *** GA(doc *docs, int nDoc, int * nClu) {
     usage("need more than one document!");
   // global
   Bits = (int) log2(nDoc-1)+1;  // calculer le nombre de bits nécessaire
-  Docs = docs;
-  NDoc = nDoc;
 
   // K varie entre 2 et 1/2 nombre de document
   const int minK = 2;
   const int maxK = (nDoc > 5) ? nDoc / 2 : 2;
 
-  genPops(minK, maxK);
+  genPops(minK, maxK, docs, nDoc);
 	for (int gen = 0 ; gen < MaxGen ; gen++) {
     statistics(&Pop1);
     // scale(&Pop1);
-    generate();
+    generate(docs, nDoc);
     report(gen);
     Pop1 = Pop2;
   }
@@ -81,25 +82,23 @@ doc *** GA(doc *docs, int nDoc, int * nClu) {
   return clusters;
 }
 
-// application interface specific code ~~~~~~~~~~~~~~~~~
-
-double objectiveFunc(int * ptype, int K) {
+double objectiveFunc(int * ptype, int K, doc *docs, int nDoc) {
   double score = 1.e-10;
   // vérifier que chromo est valide :
   for (int i = 0; i < K; i++) {
-    if (ptype[i] >= NDoc || ptype[i] < 0) // si n° invalide
+    if (ptype[i] >= nDoc || ptype[i] < 0) // si n° invalide
      return 0;                            // → pas de reproduction
     for (int j = i+1; j < K; j++) {
       if (ptype[i] == ptype[j]) return 0; // si doublon → pas de reproduction
     }
   }
-  for (int i = 0; i < NDoc; i++) {        // pr chq document
+  for (int i = 0; i < nDoc; i++) {        // pr chq document
     double dj = 0;
     for (int ki = 0; ki < K; ki++) {      // trouver sa distance minimal
-      double d = Docs[i].dist[ptype[ki]]; // avec le centre ki
+      double d = docs[i].dist[ptype[ki]]; // avec le centre ki
       if (!ki || d < dj) dj = d;
     }
-    score += dj / NDoc;                  // dj / n
+    score += dj / nDoc;                  // dj / n
   }
   return 1 / score; // score inversé (+ petit = mieux)
 }
@@ -122,9 +121,9 @@ int decodeSpec(char * spec) {
 	return value;
 }
 
-void makeChromo(allele * chromo, int K) {
+void makeChromo(allele * chromo, int K, int nDoc) {
   for (int i = 0; i < K*Bits;) {
-    int n = randRange(0, NDoc+1);    // nb aléatoire entre 0 et le nb de doc
+    int n = randRange(0, nDoc+1);    // nb aléatoire entre 0 et le nb de doc
     for (int c = Bits-1; c >= 0; c--) {
       int k = n >> c;
       chromo[i++] = (k & 1) ? 1 : 0; // converti en binaire
@@ -151,9 +150,7 @@ void report(int gen) {
   }
 }
 
-// GA engine ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-void genPops(const int minK, const int maxK) {
+void genPops(const int minK, const int maxK, doc *docs, int nDoc) {
   Pop1.A = (individual *) malloc(PopSize * sizeof(individual));
   Pop2.A = (individual *) malloc(PopSize * sizeof(individual));
   if (Pop1.A == NULL || Pop2.A == NULL)
@@ -168,8 +165,8 @@ void genPops(const int minK, const int maxK) {
     if (ind1->Gtype.A == NULL || ind2->Gtype.A == NULL)
       usage("malloc error in genPops");
 
-		makeChromo(ind1->Gtype.A, K);
-		updateIndiv(ind1, 0, 0, 0, K);
+		makeChromo(ind1->Gtype.A, K, nDoc);
+		updateIndiv(ind1, 0, 0, 0, K, docs, nDoc);
   }
 }
 
@@ -207,7 +204,7 @@ void scale(Population * pop) {
   }
 }
 
-void generate() {
+void generate(doc *docs, int nDoc) {
   int X ;	                     // crossover point
   int * picked1 = pick(&Pop1); // select mates
 	for (int z = 0; z < PopSize; z += 2) {
@@ -218,8 +215,8 @@ void generate() {
       &Pop2.A[z].Gtype, &Pop2.A[z+1].Gtype,
       Pop1.A[m1].Len, Pop1.A[m2].Len
     );
-		updateIndiv(&Pop2.A[z], m1, m2, X, Pop1.A[m1].Len);
-		updateIndiv(&Pop2.A[z + 1], m1, m2, X, Pop1.A[m2].Len);
+		updateIndiv(&Pop2.A[z], m1, m2, X, Pop1.A[m1].Len, docs, nDoc);
+		updateIndiv(&Pop2.A[z + 1], m1, m2, X, Pop1.A[m2].Len, docs, nDoc);
   }
   free(picked1);
 }
@@ -244,9 +241,9 @@ int crossover(Chromo * P1, Chromo * P2, Chromo * C1, Chromo * C2, int K1, int K2
 	return X;
 }
 
-void updateIndiv(indiv ind, int m1, int m2, int X, int newK)	{
-	ind->Ptype = decode(ind->Gtype, newK);	              // phenotype
-	ind->Fitness = objectiveFunc(ind->Ptype, newK);	      // raw adaptation value
+void updateIndiv(indiv ind, int m1, int m2, int X, int newK, doc *docs, int nDoc)	{
+	ind->Ptype = decode(ind->Gtype, newK);
+	ind->Fitness = objectiveFunc(ind->Ptype, newK, docs, nDoc);
   free(ind->Ptype);
 	ind->Parent_1 = m1;
 	ind->Parent_2 = m2;

@@ -40,15 +40,15 @@ typedef struct {
  */
 doc *** GA(doc * docs, int nDoc, int * n);
 
-// application interface specific code ~~~~~~~~~~~~~~~~~
-
 /**
  * Fonction objectif
  * @param  ptype phenotype d'un individu
  * @param  K     nombre d'info codé
+ * @param  docs  liste de document
+ * @param  nDoc  nombre de document
  * @return       fitness
  */
-double objectiveFunc(int * ptype, int K);
+double objectiveFunc(int * ptype, int K, doc *docs, int nDoc);
 
 /**
  * Décoder un génotype
@@ -69,8 +69,9 @@ int decodeSpec(char * spec);
  * Créer un chromosome
  * @param chromo  emplacement du chromosome
  * @param K       nombre d'info codé
+ * @param nDoc    nombre de document
  */
-void makeChromo(allele * chromo, int K);
+void makeChromo(allele * chromo, int K, int nDoc);
 
 /**
  * Afficher un chromosome
@@ -85,8 +86,6 @@ void putchrom(Chromo Gtype, int K);
  */
 void report(int gen);
 
-// GA engine ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
 /**
  * Collecte statistiques globales
  * @param pop population
@@ -99,8 +98,10 @@ void statistics(Population * pop);
  * et fait de la place pour Pop2
  * @param minK nombre minimum de clusters
  * @param maxK nombre maximum de clusters
+ * @param docs  liste de document
+ * @param nDoc  nombre de document
  */
-void genPops(const int minK, const int maxK);
+void genPops(const int minK, const int maxK, doc *docs, int nDoc);
 
 /**
  * linear transformation of Fitness curve
@@ -108,8 +109,12 @@ void genPops(const int minK, const int maxK);
  */
 void scale(Population * pop);
 
-/** generer une population aléatoirement */
-void generate();
+/**
+ * generer une population aléatoirement
+ * @param docs liste de document
+ * @param nDoc nombre de document
+ */
+void generate(doc *docs, int nDoc);
 
 /**
  * Effectuer crossover entre 2 chromos
@@ -130,8 +135,10 @@ int crossover(Chromo * P1, Chromo * P2, Chromo * C1, Chromo * C2, int K1, int K2
  * @param m2    2eme parent
  * @param X     point du crossover
  * @param newK  nouvelle taille
+ * @param docs  liste de document
+ * @param nDoc  nombre de document
  */
-void updateIndiv(indiv ind, int m1, int m2, int X, int newK);
+void updateIndiv(indiv ind, int m1, int m2, int X, int newK, doc *docs, int nDoc);
 
 /**
  * Mélanger un vecteur de int
