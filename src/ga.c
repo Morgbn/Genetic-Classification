@@ -13,41 +13,24 @@ double ProbMut = .02;
 /** @global PopSize taille population */
 int PopSize = 30;
 // !:::::: temporaire ::::!
-int Bits, K;
-int ChromSize; // max de bit * k
+int Bits;
 doc *Docs;
 int NDoc;
 
-void putchrom(Chromo Gtype) {
-  printf("[");
-  for (int p = 0; p < K; p++) {
-    char * bitstr = &(Gtype.A[p * Bits]);
-    printf("%i%s", decodeSpec(bitstr), (p+1==K) ? "" : ", ");
-  }
-  printf("]");
-}
-
-void report(int gen) {
-  printf("------- %i -------\n", gen);
-  for (int i = 0; i < PopSize; i++) {
-    indiv ind = &Pop1.A[i];	// old string
-    printf("(%i) ", i);
-    putchrom(ind->Gtype);
-    printf(" score = %g\n", ind->Fitness);
-  }
-}
-
 doc *** GA(doc *docs, int nDoc, int * nClu) {
-  assert(!(PopSize%2));
-  // const int minClu = 2;
-  // const int maxClu = nDoc / 2;
+  assert(!(PopSize%2)); // si mvs réglage
+  if (nDoc < 2)         // regroupe pas - de 2 doc
+    usage("need more than one document!");
+  // global
   Bits = (int) log2(nDoc-1)+1;  // calculer le nombre de bits nécessaire
-  K = 2;
-  ChromSize = Bits * K;
   Docs = docs;
   NDoc = nDoc;
 
-  genPops(docs);
+  // K varie entre 2 et 1/2 nombre de document
+  const int minK = 2;
+  const int maxK = (nDoc > 5) ? nDoc / 2 : 2;
+
+  genPops(minK, maxK);
 	for (int gen = 0 ; gen < MaxGen ; gen++) {
     statistics(&Pop1);
     // scale(&Pop1);
@@ -62,36 +45,37 @@ doc *** GA(doc *docs, int nDoc, int * nClu) {
     if (ind->Fitness == MaxFit) break; // le meilleur clustering trouvé
   }
 
-  *nClu = K;
+  *nClu = ind->Len;
   // faire de la place pour la liste de liste de document
-  doc ***clusters = (doc ***) malloc(K * sizeof(doc **));
+  doc ***clusters = (doc ***) malloc(*nClu * sizeof(doc **));
   if (clusters == NULL) usage("error malloc in GA");
-  for (int i = 0; i < K; i++) {
+  for (int i = 0; i < *nClu; i++) {
     clusters[i] = (doc **) malloc((nDoc+2) * sizeof(doc *)); // surement trop
     if (clusters[i] == NULL) usage("error malloc in GA");
   }
-  int nIn[K];
-  memset(nIn, 0, K * sizeof(int));
+  int nIn[*nClu];
+  memset(nIn, 0, *nClu * sizeof(int));
 
-  int * ptype = decode(ind->Gtype);       // calculer le ptype
-  for (int ki = 0; ki < K; ki++)          // mettre en tête les centres
+  int * ptype = decode(ind->Gtype, ind->Len); // calculer le ptype
+  for (int ki = 0; ki < *nClu; ki++)          // mettre en tête les centres
     clusters[ki][nIn[ki]++] = &docs[ptype[ki]];
 
-  for (int i = 0; i < nDoc; i++) {        // pr chq document
+  for (int i = 0; i < nDoc; i++) {            // pr chq document
     int bestK = 0;
     double dmin = docs[i].dist[ptype[0]];
-    for (int ki = 1; ki < K; ki++) {      // trouver sa distance minimal
-      double d = docs[i].dist[ptype[ki]]; // avec l'un des centres
+    for (int ki = 1; ki < *nClu; ki++) {      // trouver sa distance minimal
+      double d = docs[i].dist[ptype[ki]];     // avec l'un des centres
       if (d < dmin) {
         dmin = d;
         bestK = ki;
       }
     }
-    if (ptype[bestK] == i) continue;      // déjà ajouter (au début)
+    if (ptype[bestK] == i) continue;          // déjà ajouter (au début)
     clusters[bestK][nIn[bestK]++] = &docs[i];
   }
 
-  for (int i = 0; i < K; i++) clusters[i][nIn[i]] = NULL; // pr facilement detecter la fin
+  for (int i = 0; i < *nClu; i++)             // pr facilement detecter la fin
+    clusters[i][nIn[i]] = NULL;
   free(ptype);
 
   return clusters;
@@ -99,16 +83,16 @@ doc *** GA(doc *docs, int nDoc, int * nClu) {
 
 // application interface specific code ~~~~~~~~~~~~~~~~~
 
-double objectiveFunc(int * ptype) {
+double objectiveFunc(int * ptype, int K) {
   double score = 1.e-10;
   // vérifier que chromo est valide :
   for (int i = 0; i < K; i++) {
-    if (ptype[i] >= NDoc) return 0;       // si n° invalide → pas de reproduction
+    if (ptype[i] >= NDoc || ptype[i] < 0) // si n° invalide
+     return 0;                            // → pas de reproduction
     for (int j = i+1; j < K; j++) {
       if (ptype[i] == ptype[j]) return 0; // si doublon → pas de reproduction
     }
   }
-
   for (int i = 0; i < NDoc; i++) {        // pr chq document
     double dj = 0;
     for (int ki = 0; ki < K; ki++) {      // trouver sa distance minimal
@@ -120,7 +104,7 @@ double objectiveFunc(int * ptype) {
   return 1 / score; // score inversé (+ petit = mieux)
 }
 
-int * decode(Chromo Gtype)	{
+int * decode(Chromo Gtype, int K)	{
   int * ptype = (int *) malloc(K * sizeof(int));
   if (ptype == NULL) usage("error malloc in decode");
 
@@ -138,7 +122,7 @@ int decodeSpec(char * spec) {
 	return value;
 }
 
-void makeChromo(allele * chromo, int minSize, int maxSize) {
+void makeChromo(allele * chromo, int K) {
   for (int i = 0; i < K*Bits;) {
     int n = randRange(0, NDoc+1);    // nb aléatoire entre 0 et le nb de doc
     for (int c = Bits-1; c >= 0; c--) {
@@ -148,9 +132,28 @@ void makeChromo(allele * chromo, int minSize, int maxSize) {
   }
 }
 
+void putchrom(Chromo Gtype, int K) {
+  printf("[");
+  for (int p = 0; p < K; p++) {
+    char * bitstr = &(Gtype.A[p * Bits]);
+    printf("%i%s", decodeSpec(bitstr), (p+1==K) ? "" : ", ");
+  }
+  printf("]");
+}
+
+void report(int gen) {
+  printf("------- %i -------\n", gen);
+  for (int i = 0; i < PopSize; i++) {
+    indiv ind = &Pop1.A[i];	// old string
+    printf("(%03d) ", i);
+    putchrom(ind->Gtype, ind->Len);
+    printf(" score = %g\n", ind->Fitness);
+  }
+}
+
 // GA engine ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-void genPops() {
+void genPops(const int minK, const int maxK) {
   Pop1.A = (individual *) malloc(PopSize * sizeof(individual));
   Pop2.A = (individual *) malloc(PopSize * sizeof(individual));
   if (Pop1.A == NULL || Pop2.A == NULL)
@@ -159,13 +162,14 @@ void genPops() {
   for (int i = 0; i < PopSize; i++) {
     indiv ind1 = &Pop1.A[i];	// look out ~~~
     indiv ind2 = &Pop2.A[i];	// look out ~~~
-    ind1->Gtype.A = (allele *) malloc(ChromSize * sizeof(allele));
-    ind2->Gtype.A = (allele *) malloc(ChromSize * sizeof(allele));
+    int K = randRange(minK, maxK+1); // taille aléatoire
+    ind1->Gtype.A = (allele *) malloc((maxK * Bits) * sizeof(allele));
+    ind2->Gtype.A = (allele *) malloc((maxK * Bits) * sizeof(allele));
     if (ind1->Gtype.A == NULL || ind2->Gtype.A == NULL)
       usage("malloc error in genPops");
 
-		makeChromo(ind1->Gtype.A, ChromSize, ChromSize);
-		updateIndiv(ind1, 0, 0, 0);
+		makeChromo(ind1->Gtype.A, K);
+		updateIndiv(ind1, 0, 0, 0, K);
   }
 }
 
@@ -209,37 +213,45 @@ void generate() {
 	for (int z = 0; z < PopSize; z += 2) {
     int m1 = picked1[z];	     // selected mate 1
 		int m2 = picked1[z+1];     // selected mate 2
-		X = crossover(&Pop1.A[m1].Gtype, &Pop1.A[m2].Gtype, &Pop2.A[z].Gtype, &Pop2.A[z+1].Gtype);
-		updateIndiv(&Pop2.A[z], m1, m2, X);
-		updateIndiv(&Pop2.A[z + 1], m1, m2, X);
+		X = crossover(
+      &Pop1.A[m1].Gtype, &Pop1.A[m2].Gtype,
+      &Pop2.A[z].Gtype, &Pop2.A[z+1].Gtype,
+      Pop1.A[m1].Len, Pop1.A[m2].Len
+    );
+		updateIndiv(&Pop2.A[z], m1, m2, X, Pop1.A[m1].Len);
+		updateIndiv(&Pop2.A[z + 1], m1, m2, X, Pop1.A[m2].Len);
   }
   free(picked1);
 }
 
-int crossover(Chromo * P1, Chromo * P2, Chromo * C1, Chromo * C2) {
+int crossover(Chromo * P1, Chromo * P2, Chromo * C1, Chromo * C2, int K1, int K2) {
   int X;	                        // crossover point to be returned
 
-	if (flip(ProbCross)) X = randRange(1, K) * Bits; // coupé correctement
-	else X = ChromSize;
+  int Kmin = (K1 < K2) ? K1 : K2;
+  int Kmax = (K1 >= K2) ? K1 : K2;
+
+	if (flip(ProbCross)) X = randRange(1, Kmin) * Bits; // coupé correctement
+	else X = Kmin*Bits;
 
 	for (int k = 0; k < X; k++)	{
     C1->A[k] = mutate(P1->A[k]);	// child 1 from parent 1
 		C2->A[k] = mutate(P2->A[k]);  // child 2 from parent 2
   }
-	for (int k = X; k < ChromSize; k++) {
-    C1->A[k] = mutate(P2->A[k]);	// child 1 from parent 2
-		C2->A[k] = mutate(P1->A[k]);  // child 2 from parent 1
+	for (int k = X; k < Kmax * Bits; k++) {
+    if (k < K2*Bits) C1->A[k] = mutate(P2->A[k]);	// child 1 from parent 2
+		if (k < K1*Bits) C2->A[k] = mutate(P1->A[k]); // child 2 from parent 1
   }
 	return X;
 }
 
-void updateIndiv(indiv ind, int m1, int m2, int X)	{
-	ind->Ptype = decode(ind->Gtype);	              // phenotype
-	ind->Fitness = objectiveFunc(ind->Ptype);	      // raw adaptation value
+void updateIndiv(indiv ind, int m1, int m2, int X, int newK)	{
+	ind->Ptype = decode(ind->Gtype, newK);	              // phenotype
+	ind->Fitness = objectiveFunc(ind->Ptype, newK);	      // raw adaptation value
   free(ind->Ptype);
 	ind->Parent_1 = m1;
 	ind->Parent_2 = m2;
 	ind->CrossPoint = X;
+  ind->Len = newK;
 }
 
 void shuffleVect(int * a, int len) {

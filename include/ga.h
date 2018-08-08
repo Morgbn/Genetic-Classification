@@ -20,6 +20,7 @@ typedef struct {
 typedef struct { // données d'un individu
   Chromo Gtype;
   int * Ptype;
+  int Len;       // nombre de clusters
 	double Fitness;
 	int Parent_1, Parent_2, CrossPoint;
 } individual, * indiv;
@@ -44,16 +45,18 @@ doc *** GA(doc * docs, int nDoc, int * n);
 /**
  * Fonction objectif
  * @param  ptype phenotype d'un individu
+ * @param  K     nombre d'info codé
  * @return       fitness
  */
-double objectiveFunc(int * ptype);
+double objectiveFunc(int * ptype, int K);
 
 /**
  * Décoder un génotype
  * @param  Gtype génotype
+ * @param  K     nombre d'info codé
  * @return       génotype décodé (score)
  */
-int * decode(Chromo Gtype);
+int * decode(Chromo Gtype, int K);
 
 /**
  * Convertir un morceau de chromosome (bit string)
@@ -65,10 +68,22 @@ int decodeSpec(char * spec);
 /**
  * Créer un chromosome
  * @param chromo  emplacement du chromosome
- * @param minSize taille minimum
- * @param maxSize taille maximum
+ * @param K       nombre d'info codé
  */
-void makeChromo(allele * chromo, int minSize, int maxSize);
+void makeChromo(allele * chromo, int K);
+
+/**
+ * Afficher un chromosome
+ * @param Gtype chromosome
+ * @param K     nombre d'info codé
+ */
+void putchrom(Chromo Gtype, int K);
+
+/**
+ * Afficher des infomations utiles à la maintenance de l'algo
+ * @param gen numéro de la génération
+ */
+void report(int gen);
 
 // GA engine ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -82,8 +97,10 @@ void statistics(Population * pop);
  * Initialise les populations
  * la 1er aléatoirement
  * et fait de la place pour Pop2
+ * @param minK nombre minimum de clusters
+ * @param maxK nombre maximum de clusters
  */
-void genPops();
+void genPops(const int minK, const int maxK);
 
 /**
  * linear transformation of Fitness curve
@@ -100,18 +117,21 @@ void generate();
  * @param  P2 2eme parent
  * @param  C1 1er enfant
  * @param  C2 2eme enfant
+ * @param  K1 taille 1er enfant
+ * @param  K2 taille 2eme enfant
  * @return    point du crossover
  */
-int crossover(Chromo * P1, Chromo * P2, Chromo * C1, Chromo * C2);
+int crossover(Chromo * P1, Chromo * P2, Chromo * C1, Chromo * C2, int K1, int K2);
 
 /**
  * Mettre à jour un individu
- * @param ind individu
- * @param m1  1er parent
- * @param m2  2eme parent
- * @param X   point du crossover
+ * @param ind   individu
+ * @param m1    1er parent
+ * @param m2    2eme parent
+ * @param X     point du crossover
+ * @param newK  nouvelle taille
  */
-void updateIndiv(indiv ind, int m1, int m2, int X);
+void updateIndiv(indiv ind, int m1, int m2, int X, int newK);
 
 /**
  * Mélanger un vecteur de int
