@@ -41,7 +41,7 @@ doc *** GA(doc *docs, int nDoc, int * nClu) {
   assert(!(PopSize%2));
   // const int minClu = 2;
   // const int maxClu = nDoc / 2;
-  Bits = 3;
+  Bits = (int) log2(nDoc-1)+1;  // calculer le nombre de bits nécessaire
   K = 2;
   ChromSize = Bits * K;
   Docs = docs;
@@ -73,21 +73,26 @@ doc *** GA(doc *docs, int nDoc, int * nClu) {
   int nIn[K];
   memset(nIn, 0, K * sizeof(int));
 
+  int * ptype = decode(ind->Gtype);       // calculer le ptype
+  for (int ki = 0; ki < K; ki++)          // mettre en tête les centres
+    clusters[ki][nIn[ki]++] = &docs[ptype[ki]];
+
   for (int i = 0; i < nDoc; i++) {        // pr chq document
-    double dmin = 0;
-    int bestK;
-    for (int ki = 0; ki < K; ki++) {      // trouver sa distance minimal
-      int center = decodeSpec(&(ind->Gtype.A[ki * Bits])); // ind->Ptype ???
-      double d = docs[i].dist[center];    // avec l'un des centres
-      if (!ki || d < dmin) {
+    int bestK = 0;
+    double dmin = docs[i].dist[ptype[0]];
+    for (int ki = 1; ki < K; ki++) {      // trouver sa distance minimal
+      double d = docs[i].dist[ptype[ki]]; // avec l'un des centres
+      if (d < dmin) {
         dmin = d;
         bestK = ki;
       }
     }
+    if (ptype[bestK] == i) continue;      // déjà ajouter (au début)
     clusters[bestK][nIn[bestK]++] = &docs[i];
   }
 
   for (int i = 0; i < K; i++) clusters[i][nIn[i]] = NULL; // pr facilement detecter la fin
+  free(ptype);
 
   return clusters;
 }
@@ -135,7 +140,7 @@ int decodeSpec(char * spec) {
 
 void makeChromo(allele * chromo, int minSize, int maxSize) {
   for (int i = 0; i < K*Bits;) {
-    int n = randRange(0, K+1);       // nb aléatoire entre 0 et K
+    int n = randRange(0, NDoc+1);    // nb aléatoire entre 0 et le nb de doc
     for (int c = Bits-1; c >= 0; c--) {
       int k = n >> c;
       chromo[i++] = (k & 1) ? 1 : 0; // converti en binaire
