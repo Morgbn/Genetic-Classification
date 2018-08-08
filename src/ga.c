@@ -35,7 +35,7 @@ doc *** GA(doc *docs, int nDoc, int * nClu) {
   genPops(minK, maxK, docs, nDoc); // initialisation des populations
 	for (int gen = 0 ; gen < MaxGen ; gen++) {
     statistics(&Pop1);
-    // scale(&Pop1);
+    scale(&Pop1);
     generate(docs, nDoc);
     report(gen);
     Pop1 = Pop2;
@@ -85,10 +85,10 @@ double objectiveFunc(int * ptype, int K, doc *docs, int nDoc) {
   double score = 1.e-10;
   // vérifier que chromo est valide :
   for (int i = 0; i < K; i++) {
-    if (ptype[i] >= nDoc || ptype[i] < 0) // si n° invalide
-     return 0;                            // → pas de reproduction
+    if (ptype[i] >= nDoc || ptype[i] < 0)// si n° invalide
+     return -1;                            // → pas de reproduction
     for (int j = i+1; j < K; j++) {
-      if (ptype[i] == ptype[j]) return 0; // si doublon → pas de reproduction
+      if (ptype[i] == ptype[j]) return -1;// si doublon → pas de reproduction
     }
   }
   for (int i = 0; i < nDoc; i++) {        // pr chq document
@@ -140,13 +140,14 @@ void putchrom(Chromo Gtype, int K) {
 }
 
 void report(int gen) {
-  printf("------- %i -------\n", gen);
+  printf("++Gen n° %i ; MinFit = %g ; MaxFit = %g\n", gen, MinFit, MaxFit);
   for (int i = 0; i < PopSize; i++) {
     indiv ind = &Pop1.A[i];	// old string
     printf("(%03d) ", i);
     putchrom(ind->Gtype, ind->Len);
     printf(" score = %g\n", ind->Fitness);
   }
+  puts(" ");
 }
 
 void genPops(const int minK, const int maxK, doc *docs, int nDoc) {
@@ -171,33 +172,38 @@ void genPops(const int minK, const int maxK, doc *docs, int nDoc) {
 
 void statistics(Population * pop)	{
   MaxFit = 0;
-  MinFit = 1;
+  MinFit = 0;
+  int truePopSize = 0;                    // taille réel (sans indiv invalide)
 	for (int x = 0; x < PopSize; x++) {
 	  indiv ind = &pop->A[x];
+    if (ind->Fitness < 0) continue;       // indiv invalide
+    truePopSize++;
 		GlobalFitness += ind->Fitness;
 		if (ind->Fitness > MaxFit) MaxFit = ind->Fitness;
-		if (ind->Fitness < MinFit) MinFit = ind->Fitness;
+		if (!MinFit ||
+        ind->Fitness < MinFit) MinFit = ind->Fitness;
   }
-	Average = GlobalFitness / (double) PopSize;
+	Average = GlobalFitness / (double) truePopSize;
 }
 
 void scale(Population * pop) {
-  const double FM = 2;	                  // Fitness Multiple : Goldberg p. 88
+  const double FM = 2;	                  // espérance du nb de copies souhaité pour le meilleur individu
 	double delta, slope, offset;	          // slope and offset for linear equation
-  //	compute coefficient for linear scale
-	if (MinFit > ((FM * Average - MaxFit) / (FM - 1))) {// non-negative ?
-	  delta = MaxFit - Average;	            // normal scale
+  //	calculer le coefficient pr la transformation linéaire
+	if (MinFit > ((FM * Average - MaxFit) / (FM - 1))) { // non-negatif ? (bcp de bons individus)
+	  delta = MaxFit - Average;	            // transformation normal
 		slope = (FM - 1) * Average / delta;
 		offset = Average * (MaxFit - FM * Average) / delta;
   }
-	else {
-    delta = Average - MinFit;	            // scale as much as possible
+	else {                                  // negatif (peu de bons individus)
+    delta = Average - MinFit;	            // transformation le plus possible
 		slope = Average / delta;
 		offset = -MinFit * Average / delta;
   }
 	GlobalFitness = 0;
 	for (int x = 0; x < PopSize; x++) {
     indiv ind = &pop->A[x];
+    if (ind->Fitness < 0) continue; // ne pas s'occuper des indiv non valides
 		ind->Fitness = (slope * (ind->Fitness)) + offset;	// y = ax + b, translated adaptation value
 		GlobalFitness += ind->Fitness;
   }
