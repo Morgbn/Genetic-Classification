@@ -33,20 +33,20 @@ doc * getData(const char * path, int * len, int toLuhn) {
       }
       if ((node = getNode(aDoc, terms[i]))) { // chemin existe vers ce terme ?
         if (!node->val)                       // chemin existe ms pas de valeur attachée
-          node->val = pFloat(1);              // y attacher 0
+          node->val = pFloat(1);              // y attacher 1
         else (*(float *) node->val)++;        // ajouter une occurrence
       }
       else                                    // pas de chemin vers le terme ?
         addToTree(aDoc, terms[i], pFloat(1)); // l'ajouter
       sumO++;
     }
-    free(terms);
+    free(terms);                              // plus besoin de la liste de mots
     int nbO = nLeaf(aDoc);                    // nombre d'occurrence
-    divideAllTreeBy(aDoc, nTerm);             // ÷ le nb d'occurrence par le nb de terme
+    divideAllTreeBy(aDoc, nTerm);             // ÷ chq occurrence par le nb de terme
 
     if (toLuhn) {
       float fAv = (float) sumO / nbO / nTerm; // fréquence moyenne
-      float min = fAv-fAv*threshold;          // seuil +- 25% de la moyenne
+      float min = fAv-fAv*threshold;          // seuil +- 10% de la moyenne
       float max = fAv+fAv*threshold;
       applyLuhn(aDoc, min, max);              // application de la conjecture de Luhn
     }

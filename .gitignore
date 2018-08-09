@@ -5,7 +5,8 @@ build
 doc
 bin/*
 lib/*
-test/docs*
+test/*
+!test/*.sh
 
 !src/*.txt
 
