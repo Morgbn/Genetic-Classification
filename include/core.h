@@ -3,6 +3,7 @@
 
 #include <dirent.h>
 #include <string.h>
+#include <math.h>
 
 #include "utilities.h"
 #include "lemma.h"
@@ -60,5 +61,13 @@ float * pFloat(float f);
  * @return   distance
  */
 double distBtwDoc(treeList a, treeList b);
+
+/**
+ * Calculer la similarité cosinus entre deux treeList
+ * @param  a arbre a
+ * @param  b arbre b
+ * @return   distance
+ */
+double cosineSimilarity(treeList a, treeList b);
 
 #endif

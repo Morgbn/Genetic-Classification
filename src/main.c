@@ -9,6 +9,9 @@ int main(int argc, char const *argv[]) {
 
   srand(time(NULL));
 
+  int optionUseEuclDist = 0;
+  int minDist, maxDist;
+
   int nDoc = 0;
   doc * docs = getData(argv[1], &nDoc);
   for (int i = 0; i < nDoc; i++) {        // calculer distance entre chq doc
@@ -17,16 +20,34 @@ int main(int argc, char const *argv[]) {
 
     docs[i].dist[i] = 0;                  // distance a<->a = 0
     for (int j = 0; j != i; j++) {
-      docs[i].dist[j]                     // distance a<->b
-        = docs[j].dist[i]                 // égal distance b<->a
-        = distBtwDoc(docs[i].terms, docs[j].terms);
-      printf("d(%s, %s) = %g\n", docs[i].name, docs[j].name, docs[i].dist[j]);
+      if (optionUseEuclDist) {
+        docs[i].dist[j]                     // distance a<->b
+          = docs[j].dist[i]                 // égal distance b<->a
+          = distBtwDoc(docs[i].terms, docs[j].terms);
+        if (!i || docs[i].dist[j] > maxDist) maxDist = docs[i].dist[j];
+        if (!i || docs[i].dist[j] < minDist) minDist = docs[i].dist[j];
+      }
+      else {
+        docs[i].dist[j]
+          = docs[j].dist[i]
+          = cosineSimilarity(docs[i].terms, docs[j].terms);
+        printf("d(%s, %s) = %g\n", docs[i].name, docs[j].name, docs[i].dist[j]);
+      }
     }
+  }
+  if (optionUseEuclDist) { // normaliser les distances
+    for (int i = 0; i < nDoc; i++)
+      for (int j = 0; j != i; j++) {
+        docs[i].dist[j]
+          = docs[j].dist[i]
+          = (docs[i].dist[j] - minDist) / (maxDist - minDist);
+        printf("d(%s, %s) = %g\n", docs[i].name, docs[j].name, docs[i].dist[j]);
+      }
   }
 
   int nCluster;
   doc *** clusteredDoc = GA(docs, nDoc, &nCluster);
-  
+
   for (int i = 0; i < nCluster; i++) {
     printf("Cluster n°%i:\n", i);
     for (int j = 0; clusteredDoc[i][j]; j++)

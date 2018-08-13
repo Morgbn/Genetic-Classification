@@ -73,7 +73,7 @@ doc * getData(const char * path, int * len) {
           addTermInTree(aDoc, terms[j]);      // l'ajouter dans le doc
       }
     }
-    divideAllTreeBy(aDoc, nTermIn[i]);        // ÷ chq occurrence par le nb de terme
+    // divideAllTreeBy(aDoc, nTermIn[i]);        // ÷ chq occurrence par le nb de terme
     addDoc(&docList, i, filenames[i], aDoc);  // ajouter aux données le doc
   }
   freeNode(listTerms, 1, 1);
@@ -145,4 +145,41 @@ double distBtwDoc(treeList a, treeList b) {
   }
 
   return dist;
+}
+
+void cosineSimilarity_aux(treeList a, treeList b, double *dot, double *denomA, double *denomB) {
+  if (!a && !b) return;
+
+  float aVal = (a && a->val) ? *(float *) a->val : 0; // valeur de a
+  float bVal = (b && b->val) ? *(float *) b->val : 0; // valeur de b
+  *dot += aVal * bVal;                                // (a*b)
+  *denomA += aVal * aVal;                             // (a*a)
+  *denomB += bVal * bVal;                             // (b*b)
+
+  for (int k = 0; a && (k < a->nChilds); k++) {       // pr tt les enfants de a
+    treeList childB = NULL;
+    for (int j = 0; b && (j < b->nChilds); j++)       // trouver son correspondant
+      if (b->childs[j]->c == a->childs[k]->c)         // dans b
+        childB = b->childs[j];
+    cosineSimilarity_aux(a->childs[k], childB, dot, denomA, denomB);
+  }
+
+  for (int j = 0; b && (j < b->nChilds); j++) {       // pr tt les enfants de b
+    int isIn = 0;
+    for (int k = 0; a && (k < a->nChilds); k++)       // si enfant ds a
+      if (b->childs[j]->c == a->childs[k]->c) {       // ne pas descendre avec lui
+        isIn = 1; break;                              // (déjà fait avant)
+      }
+    if (!isIn)                                        // continuer seul
+      cosineSimilarity_aux(NULL, b->childs[j], dot, denomA, denomB);
+  }
+}
+
+double cosineSimilarity(treeList a, treeList b) {
+  double dotAB  = 0.0;
+  double denomA = 0.0;
+  double denomB = 0.0;
+  cosineSimilarity_aux(a, b, &dotAB, &denomA, &denomB);
+
+  return dotAB / sqrt(denomA * denomB);
 }
