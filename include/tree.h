@@ -115,4 +115,10 @@ int nLeaf(treeList head);
  */
 void freeNode(treeList aNode, int freeChilds, int freeVal);
 
+/**
+ * Nettoyer un arbre de ses noeuds inutiles
+ * @param head tête de l'arbre
+ */
+void cleanTree(treeList head);
+
 #endif

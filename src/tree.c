@@ -174,6 +174,23 @@ void freeNode(treeList aNode, int freeChilds, int freeVal) {
   }
 }
 
+void cleanTree(treeList head) {
+  for (int j = 0; j < head->nChilds; j++)
+    cleanTree(head->childs[j]);
+
+  if (head->nChilds == 0 && head->val == NULL) { // node inutile
+    treeList parent = head->parent;
+    if (parent == NULL) return;                 // ne pas supprimer racine de l'abre !
+    int j = 0;
+    for (int i = 0; i < parent->nChilds-1; i++) {
+      if (parent->childs[i]->c == head->c) j = 1;
+      parent->childs[i] = parent->childs[i+j]; // → décaler les enfants
+    }
+    parent->childs[--parent->nChilds] = NULL;  // au cas ou
+    free(head);
+  }
+}
+
 #if TEST
 int main(int argc, char const *argv[]) {
   treeList a = initTree();

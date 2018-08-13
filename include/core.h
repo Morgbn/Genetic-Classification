@@ -19,10 +19,16 @@ typedef struct _doc{
  * Lire les fichiers texte d'un dossier, et les traiter
  * @param  path   chemin vers le dossier
  * @param  len    nombre de documents traités
- * @param  toLuhn 1=appliquer conjecture de Luhn, 0 sinon
  * @return        tout les documents traités
  */
-doc * getData(const char * path, int * len, int toLuhn);
+doc * getData(const char * path, int * len);
+
+/**
+ * Ajouter un terme et une occurrence dans un arbre
+ * @param tree arbre
+ * @param term terme
+ */
+void addTermInTree(treeList tree, char * term);
 
 /**
  * Diviser tout l'arbre par un entier

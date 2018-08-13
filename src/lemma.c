@@ -71,7 +71,11 @@ int rmFrFem(char * word) {
 void applyLuhn(treeList head, float min, float max) {
   for (int j = 0; j < head->nChilds; j++)
     applyLuhn(head->childs[j], min, max);
-  if (head->val)
-    if (*(float *) head->val < min || *(float *) head->val > max)  // freq en dehors du seuil
-      freeNode(head,0,1);           // ne pas garder le mot
+  if (head->val != NULL) {
+    if (*(float *) head->val < min
+     || *(float *) head->val > max)  {      // freq en dehors du seuil
+      free(head->val);
+      head->val = NULL;
+    }
+  }
 }
