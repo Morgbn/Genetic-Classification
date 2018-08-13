@@ -85,7 +85,7 @@ double objectiveFunc(int * ptype, int K, doc *docs, int nDoc) {
   double score = 1.e-10;
   // vérifier que chromo est valide :
   for (int i = 0; i < K; i++) {
-    if (ptype[i] >= nDoc || ptype[i] < 0)// si n° invalide
+    if (ptype[i] >= nDoc || ptype[i] < 0)  // si n° invalide
      return -1;                            // → pas de reproduction
     for (int j = i+1; j < K; j++) {
       if (ptype[i] == ptype[j]) return -1;// si doublon → pas de reproduction
@@ -97,8 +97,9 @@ double objectiveFunc(int * ptype, int K, doc *docs, int nDoc) {
       double d = docs[i].dist[ptype[ki]]; // avec le centre ki
       if (!ki || d < dj) dj = d;
     }
-    score += dj / nDoc;                   // dj / n
+    score += dj;                          // dj / n
   }
+  score /= nDoc;
   return 1 / score;                       // score inversé (+ petit = mieux)
 }
 
@@ -140,7 +141,7 @@ void putchrom(Chromo Gtype, int K) {
 }
 
 void report(int gen) {
-  printf("++Gen n° %i ; MinFit = %g ; MaxFit = %g\n", gen, MinFit, MaxFit);
+  printf("++Gen n° %i ; MinFit = %g ; Av = %g ; MaxFit = %g ; GF = %g\n", gen, MinFit, Average, MaxFit, GlobalFitness);
   for (int i = 0; i < PopSize; i++) {
     indiv ind = &Pop1.A[i];	// old string
     printf("(%03d) ", i);
@@ -173,17 +174,16 @@ void genPops(const int minK, const int maxK, doc *docs, int nDoc) {
 void statistics(Population * pop)	{
   MaxFit = 0;
   MinFit = 0;
-  int truePopSize = 0;                    // taille réel (sans indiv invalide)
+  GlobalFitness = 0;
 	for (int x = 0; x < PopSize; x++) {
 	  indiv ind = &pop->A[x];
     if (ind->Fitness < 0) continue;       // indiv invalide
-    truePopSize++;
 		GlobalFitness += ind->Fitness;
 		if (ind->Fitness > MaxFit) MaxFit = ind->Fitness;
 		if (!MinFit ||
         ind->Fitness < MinFit) MinFit = ind->Fitness;
   }
-	Average = GlobalFitness / (double) truePopSize;
+	Average = GlobalFitness / (double) PopSize;
 }
 
 void scale(Population * pop) {
@@ -279,15 +279,17 @@ int * pick(Population * pop) {
   int N[PopSize];                         // partie entière de expected
   double sumR = 0;                        // somme des restes
   for (int i = 0; i < PopSize; i++) {
-    expected[i] = pop->A[i].Fitness / round(GlobalFitness / PopSize);
+    if (pop->A[i].Fitness < 0) expected[i] = 0;
+    else expected[i] = pop->A[i].Fitness / (GlobalFitness / PopSize);
     N[i] = (int) expected[i];
     expected[i] -= N[i];                  // laisser le reste dans expected
     sumR += expected[i];
   }
 
   // affecte automatiquement à chq individu Ni copies
-  for (int i = 0; i < PopSize; i++)
-    for (int j = 0; j < N[i]; j++) picked[npick++] = i;
+  for (int i = 0; (i < PopSize) && (npick < PopSize); i++)
+    for (int j = 0; j < N[i]; j++)
+      picked[npick++] = i;
 
   // recalcule probabilité avec ce qui reste
   for (int i = 0; i < PopSize; i++)
@@ -295,8 +297,7 @@ int * pick(Population * pop) {
 
 
   // roulette avec les restes pr compléter la population
-  int c = npick;
-  for (int i = 0; i < PopSize - c; i++) {
+  for (int i = 0; npick < PopSize; i++) {
     double accumulator = 0;
     double limit = floatRand();	          // réel aléatoire entre 0 et 1
     int mate;
