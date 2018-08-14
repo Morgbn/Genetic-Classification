@@ -93,6 +93,13 @@ void report(int gen);
 void statistics(Population * pop);
 
 /**
+ * Allouer une population
+ * @param pop population
+ * @param k   nombre d'info codée
+ */
+void allocPop(Population *pop, const int k);
+
+/**
  * Initialise les populations
  * la 1er aléatoirement
  * et fait de la place pour Pop2

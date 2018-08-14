@@ -76,7 +76,11 @@ doc *** GA(doc *docs, int nDoc, int * nClu) {
 
   for (int i = 0; i < *nClu; i++)             // pr facilement detecter la fin
     clusters[i][nIn[i]] = NULL;
+
+  // FREE variables non retournés
   free(ptype);
+  for (int i = 0; i < PopSize; i++) free((&Pop2.A[i])->Gtype.A);
+  free(Pop2.A);
 
   return clusters;
 }
@@ -151,21 +155,24 @@ void report(int gen) {
   puts(" ");
 }
 
-void genPops(const int minK, const int maxK, doc *docs, int nDoc) {
-  Pop1.A = (individual *) malloc(PopSize * sizeof(individual));
-  Pop2.A = (individual *) malloc(PopSize * sizeof(individual));
-  if (Pop1.A == NULL || Pop2.A == NULL)
-    usage("malloc error in genPops");
+void allocPop(Population * pop, const int k) {
+  pop->A = (individual *) malloc(PopSize * sizeof(individual));
+  if (pop->A == NULL) usage("malloc error in allocPop");
 
   for (int i = 0; i < PopSize; i++) {
-    indiv ind1 = &Pop1.A[i]; // look out ~~~
-    indiv ind2 = &Pop2.A[i]; // look out ~~~
-    int K = randRange(minK, maxK+1);      // taille aléatoire
-    ind1->Gtype.A = (allele *) malloc((maxK * Bits) * sizeof(allele));
-    ind2->Gtype.A = (allele *) malloc((maxK * Bits) * sizeof(allele));
-    if (ind1->Gtype.A == NULL || ind2->Gtype.A == NULL)
-      usage("malloc error in genPops");
+    indiv ind = &pop->A[i];
+    ind->Gtype.A = (allele *) malloc((k * Bits) * sizeof(allele));
+    if (ind->Gtype.A == NULL) usage("malloc error in genPops");
+  }
+}
 
+void genPops(const int minK, const int maxK, doc *docs, int nDoc) {
+  allocPop(&Pop2, maxK);
+  Pop1 = Pop2;
+
+  for (int i = 0; i < PopSize; i++) {
+    int K = randRange(minK, maxK+1);      // taille aléatoire
+    indiv ind1 = &Pop1.A[i]; // look out ~~~
 		makeChromo(ind1->Gtype.A, K, nDoc);
 		updateIndiv(ind1, 0, 0, 0, K, docs, nDoc);
   }

@@ -31,7 +31,6 @@ int main(int argc, char const *argv[]) {
         docs[i].dist[j]
           = docs[j].dist[i]
           = cosineSimilarity(docs[i].terms, docs[j].terms);
-        printf("d(%s, %s) = %g\n", docs[i].name, docs[j].name, docs[i].dist[j]);
       }
     }
   }
@@ -41,7 +40,6 @@ int main(int argc, char const *argv[]) {
         docs[i].dist[j]
           = docs[j].dist[i]
           = (docs[i].dist[j] - minDist) / (maxDist - minDist);
-        printf("d(%s, %s) = %g\n", docs[i].name, docs[j].name, docs[i].dist[j]);
       }
   }
 
