@@ -1,14 +1,15 @@
 #include "core.h"
 
 const float threshold = .15;
-int TF_IDF = 01; // incompatible avec LUHN_ON_ALL et USELUHN
-int LUHN_ON_ALL = 0;
-int LUHN_ON_EACH = 0; // si LUHN_ON_ALL = 1 USELUHN ignoré.
 
 doc * getData(const char * path, int * len) {
   struct dirent *file;
   DIR *dr = opendir(path);
-  if (dr == NULL) usage("Problème avec le dossier.");
+  char error[255];
+  if (dr == NULL) {
+    sprintf(error, "Un problème a été rencontré avec le dossier « %s ».", path);
+    usage(error);
+  }
 
   treeList stopList = initTree();
   treeList wordList = initTree();
@@ -38,7 +39,9 @@ doc * getData(const char * path, int * len) {
     }
 
     char pathname[256];
-    sprintf(pathname, "%s%s", path, file->d_name);
+    if (path[strlen(path)-1] == '/')          // besoin de rajouter '/' ?
+      sprintf(pathname, "%s%s", path, file->d_name);
+    else sprintf(pathname, "%s/%s", path, file->d_name);
     if (LUHN_ON_ALL) filenames[nDoc] = strdup(pathname);
 
     char **terms = readFile(pathname, &nTermIn[nDoc], 0);

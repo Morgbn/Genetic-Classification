@@ -2,7 +2,11 @@
 
 char ** readFile(const char * pathname, int *size, int keepNumber) {
   FILE *fp = fopen (pathname, "r");
-  if (fp == NULL) usage("error reading a file");
+  char error[255];
+  if (fp == NULL) {
+    sprintf(error, "Un problème a été rencontré lors de la lecture du fichier %s", pathname);
+    usage(error);
+  }
 
   unsigned char buf[1024];
   int len = 0;

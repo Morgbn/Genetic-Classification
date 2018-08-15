@@ -35,10 +35,12 @@ typedef struct {
  * "modèles discrets du continu techniques d'abstraction" - J.FEAT 2011
  * @param  docs liste de document
  * @param  nDoc nombre de document
- * @param  nClu nombre de cluster
+ * @param  nClu nombre de clusters finaux
+ * @param  minK nombre minimal de cluster
+ * @param  maxK nombre maximal de cluster
  * @return      liste de groupe de document
  */
-doc *** GA(doc * docs, int nDoc, int * n);
+doc *** GA(doc *docs, int nDoc, int * nClu, const int minK, const int maxK);
 
 /**
  * Fonction objectif

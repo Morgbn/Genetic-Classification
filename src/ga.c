@@ -20,17 +20,13 @@ double ProbCross = .95, ProbMut   = .02;
 double GlobalFitness, Average, MaxFit, MinFit;
 Population Pop1, Pop2;
 
-doc *** GA(doc *docs, int nDoc, int * nClu) {
+doc *** GA(doc *docs, int nDoc, int * nClu, const int minK, const int maxK) {
   assert(!(PopSize%2)); // si mvs réglage
   if (nDoc < 2)         // regroupe pas - de 2 doc
-    usage("need more than one document!");
+    usage("Le dossier ne contient qu'un fichier!");
 
   // calculer le nombre de bits nécessaire
   Bits = (int) log2(nDoc-1)+1;
-
-  // K varie entre 2 et 1/2 nombre de document
-  const int minK = 2;
-  const int maxK = (nDoc > 5) ? nDoc / 3 : 2;
 
   genPops(minK, maxK, docs, nDoc); // initialisation des populations
 	for (int gen = 0 ; gen < MaxGen ; gen++) {
