@@ -66,6 +66,15 @@ doc * getData(const char * path, int * len) {
       if (nO > maxO[nDoc]) maxO[nDoc] = nO;
       sumO++;
     }
+    if (LUHN_ON_EACH) {
+      int nbO = nLeaf(aDoc);                  // nombre d'occurrence
+      divideAllTreeBy(aDoc, nTermIn[nDoc]);   // ÷ chq occurrence par le nb de terme
+      float fAv = (float) sumO / nbO / nTermIn[nDoc]; // fréquence moyenne
+      float min = fAv-fAv*threshold;          // seuil +- 10% de la moyenne
+      float max = fAv+fAv*threshold;
+      applyLuhn(aDoc, min, max);              // application de la conjecture de Luhn
+    }
+
     if (!LUHN_ON_ALL) addDoc(&docList, nDoc, pathname, aDoc); // l'ajouter aux données
     nTerm += nTermIn[nDoc];
     nDoc++;
@@ -95,19 +104,6 @@ doc * getData(const char * path, int * len) {
             addTermInTree(aDoc, terms[j], 1); // l'ajouter dans le doc
       }
       addDoc(&docList, i, filenames[i], aDoc);// ajouter aux données le doc
-    }
-  }
-
-  if (LUHN_ON_EACH) {
-    for (int i = 0; i < nDoc; i++) {
-      treeList aDoc = docList[i].terms;
-      int nbO = nLeaf(aDoc);                  // nombre d'occurrence
-      divideAllTreeBy(aDoc, nTermIn[i]);      // ÷ chq occurrence par le nb de terme
-
-      float fAv = (float) sumO / nbO / nTermIn[i]; // fréquence moyenne
-      float min = fAv-fAv*threshold;          // seuil +- 10% de la moyenne
-      float max = fAv+fAv*threshold;
-      applyLuhn(aDoc, min, max);              // application de la conjecture de Luhn
     }
   }
 
@@ -214,8 +210,8 @@ double distBtwDoc(treeList a, treeList b) {
 void cosineSimilarity_aux(treeList a, treeList b, double *dot, double *denomA, double *denomB) {
   if (!a && !b) return;
 
-  float aVal = (a && a->val) ? *(float *) a->val : 0; // valeur de a
-  float bVal = (b && b->val) ? *(float *) b->val : 0; // valeur de b
+  float aVal = (a && a->val) ? *(float *) a->val : 1; // valeur de a
+  float bVal = (b && b->val) ? *(float *) b->val : 1; // valeur de b
   *dot += aVal * bVal;                                // (a*b)
   *denomA += aVal * aVal;                             // (a*a)
   *denomB += bVal * bVal;                             // (b*b)

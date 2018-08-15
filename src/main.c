@@ -14,35 +14,35 @@ int main(int argc, char const *argv[]) {
 
   int nDoc = 0;
   doc * docs = getData(argv[1], &nDoc);
-  for (int i = 0; i < nDoc; i++) {        // calculer distance entre chq doc
+  for (int i = 0; i < nDoc; i++) {            // calculer distance entre chq doc
     docs[i].dist = (double *) malloc((nDoc) * sizeof(double *));
     if (docs[i].dist == NULL) usage("error malloc in ...");
 
-    docs[i].dist[i] = 0;                  // distance a<->a = 0
+    docs[i].dist[i] = 0;                      // distance a<->a = 0
     for (int j = 0; j != i; j++) {
-      if (optionUseEuclDist) {
-        docs[i].dist[j]                     // distance a<->b
-          = docs[j].dist[i]                 // égal distance b<->a
+      if (USE_EUCL_DIST) {
+        docs[i].dist[j]                       // distance a<->b
+          = docs[j].dist[i]                   // égal distance b<->a
           = distBtwDoc(docs[i].terms, docs[j].terms);
-        if (!i || docs[i].dist[j] > maxDist) maxDist = docs[i].dist[j];
-        if (!i || docs[i].dist[j] < minDist) minDist = docs[i].dist[j];
+        printf("d(%s,%s)= %g\n", docs[i].name, docs[j].name, docs[i].dist[j]);
       }
       else {
         docs[i].dist[j]
           = docs[j].dist[i]
-          = cosineSimilarity(docs[i].terms, docs[j].terms);
+          = 1 - cosineSimilarity(docs[i].terms, docs[j].terms); // cos = 1 si similaires
+        printf("d(%s,%s)= %g\n", docs[i].name, docs[j].name, docs[i].dist[j]);
       }
+      if (!i || docs[i].dist[j] > maxDist) maxDist = docs[i].dist[j];
+      if (!i || docs[i].dist[j] < minDist) minDist = docs[i].dist[j];
     }
   }
-  if (optionUseEuclDist) { // normaliser les distances
-    for (int i = 0; i < nDoc; i++)
-      for (int j = 0; j != i; j++) {
-        docs[i].dist[j]
-          = docs[j].dist[i]
-          = (docs[i].dist[j] - minDist) / (maxDist - minDist);
-      }
-  }
-
+  for (int i = 0; i < nDoc; i++)  // normaliser les distances
+    for (int j = 0; j != i; j++) {
+      docs[i].dist[j]
+        = docs[j].dist[i]
+        = (docs[i].dist[j] - minDist) / (maxDist - minDist);
+      printf("d(%s,%s)= %g\n", docs[i].name, docs[j].name, docs[i].dist[j]);
+    }
   int nCluster;
   doc *** clusteredDoc = GA(docs, nDoc, &nCluster);
 

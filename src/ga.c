@@ -30,7 +30,7 @@ doc *** GA(doc *docs, int nDoc, int * nClu) {
 
   // K varie entre 2 et 1/2 nombre de document
   const int minK = 2;
-  const int maxK = (nDoc > 5) ? nDoc / 2 : 2;
+  const int maxK = (nDoc > 5) ? nDoc / 3 : 2;
 
   genPops(minK, maxK, docs, nDoc); // initialisation des populations
 	for (int gen = 0 ; gen < MaxGen ; gen++) {
