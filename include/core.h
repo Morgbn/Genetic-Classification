@@ -9,6 +9,10 @@
 #include "lemma.h"
 #include "tree.h"
 
+#define TF_IDF 01 // incompatible avec LUHN_ON_ALL et USELUHN
+#define LUHN_ON_ALL 0
+#define USELUHN 0 // si LUHN_ON_ALL = 1 USELUHN ignoré
+
 typedef struct _doc{
   char * name;
   int id;
@@ -26,10 +30,12 @@ doc * getData(const char * path, int * len);
 
 /**
  * Ajouter un terme et une occurrence dans un arbre
- * @param tree arbre
- * @param term terme
+ * @param  tree arbre
+ * @param  term terme
+ * @param  inc  l'incrementer si déjà present ?
+ * @return      nombre d'occurrence
  */
-void addTermInTree(treeList tree, char * term);
+int addTermInTree(treeList tree, char * term, int inc);
 
 /**
  * Diviser tout l'arbre par un entier
@@ -37,6 +43,26 @@ void addTermInTree(treeList tree, char * term);
  * @param n    entier
  */
 void divideAllTreeBy(treeList tree, int n);
+
+/**
+ * Normalisation « 0.5 » par le max
+ * @param tree arbre à normaliser
+ * @param max  maximum d'occurrence
+ */
+/**
+ * Applique méthode de pondération TF-IDF
+ * @param tree arbre
+ * @param max  fréquence brute max du doc
+ * @param nDoc nombre total de doc
+ */
+/**
+ * Applique méthode de pondération TF-IDF
+ * @param tree       arbre
+ * @param max        fréquence brute max du doc
+ * @param nDoc       nombre total de doc
+ * @param termInNDoc nb de doc ou les termes apparaient
+ */
+void tfidf(treeList tree, int max, int nDoc, treeList termInNDoc);
 
 /**
  * Ajouter un document à une liste de documents

@@ -12,14 +12,20 @@ doc * getData(const char * path, int * len) {
   initLemma("resources/stop.txt", stopList, "resources/verb.txt", wordList);
 
   int nDoc = 0, nTerm = 0, sumO = 0;          // nb de doc, nb de terme, somme des occurrences
+  doc *docList = NULL;                        // liste regroupant tt les documents
+  int *maxO = NULL;                           // fréquence brute max de chq doc
+  treeList termInNDoc = initTree();           // termInNDoc[terme] = int * nb de doc ou present
+ #if LUHN_ON_ALL
   treeList occOfTerms = initTree();           // occOfTerms[terme] = int * nb_occurrence
   treeList listTerms = initTree();            // listTerms[chemin] = char ** terms
-  doc *docList = NULL;                        // liste regroupant tt les documents
   int *nTermIn = NULL;                        // nb de termes pr chq document
   char **filenames = NULL;                    // nom de chq document
 
   while ((file = readdir(dr)) != NULL) {      // lire les fichiers d'un dossier
     if ( file->d_type != DT_REG ) continue;   // fichier = dossier → passer
+
+    maxO = (int *) realloc(maxO, (nDoc+1)*sizeof(int));
+    if (maxO == NULL) usage("error realloc in getData");
 
     nTermIn = (int *) realloc(nTermIn, (nDoc+1)*sizeof(int));
     if (nTermIn == NULL) usage("error realloc in getData");
@@ -37,13 +43,16 @@ doc * getData(const char * path, int * len) {
     lemmatisation(terms, nTermIn[nDoc], stopList, wordList); // lemmatiser tt les mots
 
     int cpyNTerm = nTermIn[nDoc];
+    int nO = 0;
     for (int i = 0; i < cpyNTerm; i++) {      // pour chq terme
       if (terms[i] == NULL) {                 // terme supprimé
         nTermIn[nDoc]--;
         free(terms[i]);
         continue;
       }
-      addTermInTree(occOfTerms, terms[i]);    // ajouter le mot dans l'arbre
+      nO = addTermInTree(occOfTerms, terms[i], 1);    // ajouter le mot dans l'arbre
+      if (TF_IDF) addTermInTree(termInNDoc, terms[i], (nO == 1)); // indiquer que le terme est present ds ce doc
+      if (nO > maxO[nDoc]) maxO[nDoc] = nO;
       sumO++;
     }
     nTerm += nTermIn[nDoc];
@@ -70,36 +79,107 @@ doc * getData(const char * path, int * len) {
       if (terms[j] == NULL) continue;         // terme supprimé
       if ((node = getNode(occOfTerms, terms[j]))) {
         if (node->val)                        // s'il y a une occurrence de ce terme
-          addTermInTree(aDoc, terms[j]);      // l'ajouter dans le doc
+          addTermInTree(aDoc, terms[j], 1);      // l'ajouter dans le doc
       }
     }
     // divideAllTreeBy(aDoc, nTermIn[i]);        // ÷ chq occurrence par le nb de terme
     addDoc(&docList, i, filenames[i], aDoc);  // ajouter aux données le doc
+    // printf("%s:\n", filenames[i]);
+    // displayPathsVals(aDoc, Float);
+    // puts(" ");puts(" ");
   }
   freeNode(listTerms, 1, 1);
   freeNode(occOfTerms, 1, 1);
+ #else
+  while ((file = readdir(dr)) != NULL) {
+    if ( file->d_type != DT_REG ) continue;   // dossier → passer
+
+    maxO = (int *) realloc(maxO, (nDoc+1)*sizeof(int));
+    if (maxO == NULL) usage("error realloc in getData");
+
+    char pathname[256];
+    sprintf(pathname, "%s%s", path, file->d_name);
+
+    char **terms = readFile(pathname, &nTerm, 0);
+    lemmatisation(terms, nTerm, stopList, wordList); // lemmatiser tt les mots
+
+    treeList aDoc = initTree();
+    int nTermCpy = nTerm;
+    int nO = 0;
+    sumO = 0;
+    for (int i = 0; i < nTermCpy; i++) {      // pour chq terme
+      if (terms[i] == NULL) {                 // terme supprimé
+        nTerm--;
+        free(terms[i]);
+        continue;
+      }
+      nO = addTermInTree(aDoc, terms[i], 1);  // l'ajouter dans le doc
+      if (TF_IDF) addTermInTree(termInNDoc, terms[i], (nO == 1)); // indiquer que le terme est present ds ce doc
+      if (nO > maxO[nDoc]) maxO[nDoc] = nO;
+      sumO++;
+     }
+     free(terms);                             // plus besoin de la liste de mots
+
+    if (USELUHN) {
+      int nbO = nLeaf(aDoc);                  // nombre d'occurrence
+      divideAllTreeBy(aDoc, nTerm);           // ÷ chq occurrence par le nb de terme
+
+      float fAv = (float) sumO / nbO / nTerm; // fréquence moyenne
+      float min = fAv-fAv*threshold;          // seuil +- 10% de la moyenne
+      float max = fAv+fAv*threshold;
+      applyLuhn(aDoc, min, max);              // application de la conjecture de Luhn
+    }
+    addDoc(&docList, nDoc++, pathname, aDoc); // l'ajouter aux données
+  }
+ #endif
+  if (TF_IDF) {
+    for (int i = 0; i < nDoc; i++) {
+      tfidf(docList[i].terms, maxO[i], nDoc, termInNDoc);
+      printf("%s :\n", docList[i].name);
+      displayPathsVals(docList[i].terms, Float);
+      puts(" ");puts(" ");
+    }
+  }
+  freeNode(termInNDoc, 1, 1);
 
   closedir(dr);
   *len = nDoc;
   return docList;
 }
 
-void addTermInTree(treeList tree, char * term) {
-  if (term == NULL) return;
+int addTermInTree(treeList tree, char * term, int inc) {
+  if (term == NULL) return 0;
   treeList node;
   if ((node = getNode(tree, term))) {         // chemin existe vers ce terme ?
     if (!node->val)                           // chemin existe ms pas de valeur attachée
       node->val = pFloat(1);                  // y attacher 1
-    else (*(float *) node->val)++;            // ajouter une occurrence
+    else if (inc) (*(float *) node->val)++;   // ajouter une occurrence
+    return (int) (*(float *) node->val);
   }
-  else                                        // pas de chemin vers le terme ?
-    addToTree(tree, term, pFloat(1));         // l'ajouter
+  addToTree(tree, term, pFloat(1));           // // pas de chemin vers le terme ? → l'ajouter
+  return 1;
 }
 
 void divideAllTreeBy(treeList tree, int n) {
   if (tree->val) *(float *) tree->val /= n;
   for (int i = 0; i < tree->nChilds; i++)
     divideAllTreeBy(tree->childs[i], n);
+}
+
+void tfidf(treeList tree, int max, int nDoc, treeList termInNDoc) {
+  if (tree->val) {
+    float tf  = .5 + .5 * (*(float *) tree->val / max); // normalisation « 0.5 » par le max
+
+    char * term = getTreePath(tree, 1);       // terme attaché à ce noeud
+    treeList r = getNode(termInNDoc, term);   // chercher dans l'abre terme<->n de doc
+    free(term);
+    int inNdoc = (r && r->val) ? *(float *) r->val : 1;
+    float idf = log10(nDoc / inNdoc);         // nb total de doc / nb de doc où le terme apparaît
+
+    *(float *) tree->val = tf * idf;
+  }
+  for (int i = 0; i < tree->nChilds; i++)
+    tfidf(tree->childs[i], max, nDoc, termInNDoc);
 }
 
 void addDoc(doc **docList, int len, char * name, treeList terms) {
