@@ -9,10 +9,6 @@
 #include "lemma.h"
 #include "tree.h"
 
-#define TF_IDF 01 // incompatible avec LUHN_ON_ALL et USELUHN
-#define LUHN_ON_ALL 0
-#define USELUHN 0 // si LUHN_ON_ALL = 1 USELUHN ignoré
-
 typedef struct _doc{
   char * name;
   int id;
