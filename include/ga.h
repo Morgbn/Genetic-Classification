@@ -96,10 +96,11 @@ void statistics(Population * pop);
 
 /**
  * Allouer une population
- * @param pop population
- * @param k   nombre d'info codée
+ * @param pop     population
+ * @param popSize taille de la population
+ * @param k       nombre d'info codée
  */
-void allocPop(Population *pop, const int k);
+void allocPop(Population * pop, const int popSize, const int k);
 
 /**
  * Initialise les populations

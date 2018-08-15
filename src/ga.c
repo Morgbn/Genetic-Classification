@@ -151,27 +151,51 @@ void report(int gen) {
   puts(" ");
 }
 
-void allocPop(Population * pop, const int k) {
-  pop->A = (individual *) malloc(PopSize * sizeof(individual));
+void allocPop(Population * pop, const int popSize, const int k) {
+  pop->A = (individual *) malloc(popSize * sizeof(individual));
   if (pop->A == NULL) usage("malloc error in allocPop");
 
-  for (int i = 0; i < PopSize; i++) {
+  for (int i = 0; i < popSize; i++) {
     indiv ind = &pop->A[i];
     ind->Gtype.A = (allele *) malloc((k * Bits) * sizeof(allele));
     if (ind->Gtype.A == NULL) usage("malloc error in genPops");
   }
 }
 
-void genPops(const int minK, const int maxK, doc *docs, int nDoc) {
-  allocPop(&Pop2, maxK);
-  Pop1 = Pop2;
+int genPops_cmpfunc(const void * a, const void * b) {
+  indiv ind1 = (indiv) a;
+  indiv ind2 = (indiv) b;
+  return (ind1->Fitness < ind2->Fitness) ? 1 : (ind1->Fitness > ind2->Fitness) ? -1 : 0;
+}
 
-  for (int i = 0; i < PopSize; i++) {
-    int K = randRange(minK, maxK+1);      // taille aléatoire
-    indiv ind1 = &Pop1.A[i]; // look out ~~~
-		makeChromo(ind1->Gtype.A, K, nDoc);
-		updateIndiv(ind1, 0, 0, 0, K, docs, nDoc);
+void genPops(const int minK, const int maxK, doc *docs, int nDoc) {
+  int mul = 4;
+  Population bigPop;
+  allocPop(&bigPop, PopSize * mul, maxK);     // pop n°0 mul fois plus grosse
+
+  for (int i = 0; i < PopSize * mul; i++) {
+    int K = randRange(minK, maxK+1);          // taille aléatoire
+    indiv ind = &bigPop.A[i]; // look out ~~~
+    makeChromo(ind->Gtype.A, K, nDoc);
+    updateIndiv(ind, 0, 0, 0, K, docs, nDoc);
   }
+
+  // trier bigPop pr avoir meilleur en haut
+  qsort(bigPop.A, PopSize * mul, sizeof(individual), genPops_cmpfunc);
+
+  allocPop(&Pop2, PopSize, maxK);
+  Pop1 = Pop2;
+  for (int i = 0; i < PopSize; i++) {         // copier les valides
+    for (int j = 0; j < bigPop.A[i].Len * Bits; j++)
+      Pop1.A[i].Gtype.A[j] = bigPop.A[i].Gtype.A[j];
+    Pop1.A[i].Len = bigPop.A[i].Len;          // (important!)
+    Pop1.A[i].Fitness = bigPop.A[i].Fitness;  // (aussi)
+    Pop1.A[i].Parent_1 = bigPop.A[i].Parent_1;// (moins)
+    Pop1.A[i].Parent_2 = bigPop.A[i].Parent_2;
+  }
+  // bigPop n'est plus utile → free
+  for (int i = 0; i < PopSize*mul; i++) free((&bigPop.A[i])->Gtype.A);
+  free(bigPop.A);
 }
 
 void statistics(Population * pop)	{
