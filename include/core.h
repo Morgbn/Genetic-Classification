@@ -43,17 +43,6 @@ int addTermInTree(treeList tree, char * term, int inc);
 void divideAllTreeBy(treeList tree, int n);
 
 /**
- * Normalisation « 0.5 » par le max
- * @param tree arbre à normaliser
- * @param max  maximum d'occurrence
- */
-/**
- * Applique méthode de pondération TF-IDF
- * @param tree arbre
- * @param max  fréquence brute max du doc
- * @param nDoc nombre total de doc
- */
-/**
  * Applique méthode de pondération TF-IDF
  * @param tree       arbre
  * @param max        fréquence brute max du doc
