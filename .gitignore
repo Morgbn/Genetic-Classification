@@ -5,10 +5,11 @@ build
 doc
 bin/*
 lib/*
-test/*
-!test/*.sh
+test/
 
 !src/*.txt
 
 codetest/
-resources/
+resources/*
+
+lexique-dicollecte-fr-v6.2.dic
