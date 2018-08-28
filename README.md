@@ -1,23 +1,25 @@
 # Classifiaction de documents
 
-Utilisation d'un algorithme génétique, pour traiter des documents textes en français.
+Programme classifiant des documents en plusieurs catégories. Le programme utilise un algorithme génétique, pour traiter un corpus de textes **français**.
+
 
 ### Installation
 
-```
-make
+```sh
+$ make
 ```
 
 ### Exécution du programme
 
-```
-bin/runner
+```sh
+$ bin/classifier <nom du dossier> [--tdidf] [--luhn {0|1|2}] [--eucl] [--cos] [--help] [--usage]
 ```
 
-### Tests
-
-Test avec gdb + données de tests
-
+Pour plus d'informations concernant l'utilisation du programme :
+```sh
+$ bin/classifier --help
 ```
-test/testGDB.sh
-```
+
+## License
+
+Le projet est sous licence gpl-3.0 - voir le fichier [LICENSE](LICENSE) pour plus de détails.
