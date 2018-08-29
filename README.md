@@ -6,7 +6,8 @@ Programme classifiant des documents en plusieurs catégories. Le programme utili
 ### Installation
 
 ```sh
-$ make
+$ chmod +x install
+$ install
 ```
 
 ### Exécution du programme

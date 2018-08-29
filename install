@@ -1,0 +1,26 @@
+#!/bin/sh
+
+if test "$1" = "clean"
+then
+  rm resources/verb.txt
+  make clean
+else
+  # set progress option accordingly
+  wget --help | grep -q '\--show-progress' && \
+    _PROGRESS_OPT="-q --show-progress" || _PROGRESS_OPT=""
+  # get dic
+  version=3
+  wget $_PROGRESS_OPT "http://www.dicollecte.org/download/fr/lexique-dicollecte-fr-v6.$version.zip"
+  while [ $? -ne 0 ]; do
+    ((version+=1))
+    wget $_PROGRESS_OPT "http://www.dicollecte.org/download/fr/lexique-dicollecte-fr-v6.$version.zip"
+  done
+  # unzip, rm, python ...
+  unzip lexique-dicollecte-fr-v*.zip
+  rm lexique-dicollecte-fr-v*.zip
+  rm README_lexique.txt
+  python getDic.py lexique-dicollecte-fr-v*.txt > resources/verb.txt
+  rm lexique-dicollecte-fr-v*.txt
+  make
+  echo 'Done'
+fi
