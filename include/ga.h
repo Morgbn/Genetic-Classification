@@ -127,6 +127,23 @@ void scale(Population * pop);
 void generate(doc *docs, int nDoc);
 
 /**
+ * Regarde si deux alleles sont identiques
+ * @param  A 1er allele
+ * @param  B 2eme allele
+ * @return   1 si identiques, 0 sinon
+ */
+int isSameAllele(allele * A, allele * B);
+
+/**
+ * Regarde si un allele est présent dans un chromosome
+ * @param  el  allele
+ * @param  arr chromosome
+ * @param  len taille du chromosome
+ * @return     1 si présent, 0 sinon
+ */
+int alleleInChromo(allele * el, Chromo * arr, int len);
+
+/**
  * Effectuer crossover entre 2 chromos
  * @param  P1 1er parent
  * @param  P2 2eme parent

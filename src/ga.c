@@ -253,27 +253,41 @@ void generate(doc *docs, int nDoc) {
   free(picked1);
 }
 
+int isSameAllele(allele * A, allele * B) {
+  for (int i = 0; i < Bits; i++)
+    if (A[i] != B[i]) return 0;
+  return 1;
+}
+
+int alleleInChromo(allele * el, Chromo * arr, int len) {
+  for (int i = 0; i < len * Bits; i+=Bits)
+    if (isSameAllele(&arr->A[i], el)) return 1; // el ds arr
+  return 0;
+}
+
 int crossover(Chromo * P1, Chromo * P2, Chromo * C1, Chromo * C2, int K1, int K2) {
-  int X;	                                // point du crossover à retourner
+  C1 = P1; C2 = P2; // copie pointeur
+  if (!flip(ProbCross)) return 0; // pas de crossover (pas de mutation)
 
-  int Kmin = (K1 < K2) ? K1 : K2;
   int Kmax = (K1 >= K2) ? K1 : K2;
+  int U1[Kmax], U2[Kmax]; // index des centres ne se retrouvant pas dans l'autre
+  int u1 = 0, u2 = 0;
 
-	if (flip(ProbCross))
-    X = randRange(1, Kmin) * Bits;        // coupé correctement
-	else X = Kmin*Bits;
+  for (int i = 0; i < K1 * Bits; i+=Bits)
+    if (!alleleInChromo(&C1->A[i], C2, K2)) U1[u1++] = i; // centres non présents dans P2
+  for (int i = 0; i < K2 * Bits; i+=Bits)
+    if (!alleleInChromo(&C2->A[i], C1, K1)) U2[u2++] = i; // centres non présents dans P2
 
-	for (int k = 0; k < X; k++)	{           // 1er partie
-    C1->A[k] = mutate(P1->A[k]);	        // enfant 1 depuis le parent 1
-		C2->A[k] = mutate(P2->A[k]);          // enfant 2 depuis le parent 2
+  int Umin = (u1 < u2) ? u1 : u2;
+  for (int i = 0; i < Umin; i++) {
+    if (flip(ProbCross) > 0.5) continue; // 1 chance sur 2 de crossover ce centre
+    for (int b = 0; b < Bits; b++) {  // copier tt les bits codant le centre
+      allele tmp = C1->A[U1[i]+b];
+      C1->A[U1[i]+b] = C2->A[U2[i]+b];
+      C2->A[U1[i]+b] = tmp;
+    }
   }
-	for (int k = X; k < Kmax * Bits; k++) {
-    if (k < K2*Bits)                      // ne pas dépasser la taille du parent 2
-      C1->A[k] = mutate(P2->A[k]);	      // enfant 1 depuis le parent 2
-		if (k < K1*Bits)                      // "..." 1
-      C2->A[k] = mutate(P1->A[k]);        // enfant 2 depuis le parent 1
-  }
-	return X;
+  return 0; // useless
 }
 
 void updateIndiv(indiv ind, int m1, int m2, int X, int newK, doc *docs, int nDoc)	{
