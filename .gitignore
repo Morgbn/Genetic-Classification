@@ -10,6 +10,7 @@ test/
 !src/*.txt
 
 codetest/
-resources/*
+resources/verb.txt
+!resources/stop.txt
 
-lexique-dicollecte-fr-v6.2.dic
+lexique-dicollecte-fr-v*.dic
