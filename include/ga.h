@@ -10,6 +10,8 @@
 #include "utilities.h"
 #include "core.h"
 
+extern int verboseGa, multPop0, MaxGen, PopSize;
+
 typedef char boolean ;
 typedef boolean allele ;
 

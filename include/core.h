@@ -16,7 +16,7 @@ typedef struct _doc{
   double * dist;
 } doc;
 
-extern int TF_IDF, LUHN_ON_ALL, LUHN_ON_EACH;
+extern int TF_IDF, LUHN_ON_ALL, LUHN_ON_EACH, verboseLemm;
 
 /**
  * Lire les fichiers texte d'un dossier, et les traiter

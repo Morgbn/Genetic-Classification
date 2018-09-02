@@ -2,8 +2,6 @@
 
 /**
  * VARIABLE GLOBAL :
- * @global MaxGen        maximum de generations
- * @global PopSize       taille population
  * @global Bits          nombre de bits pr coder l'information
  *                       - trouver automatiquement dans ga() -
  * @global ProbCross     probabilité crossover
@@ -15,7 +13,7 @@
  * @global Pop1          population parent
  * @global Pop2          population enfant
  */
-int MaxGen = 20, PopSize = 30, Bits;
+int Bits;
 double ProbCross = .95, ProbMut   = .02;
 double GlobalFitness, Average, MaxFit, MinFit;
 Population Pop1, Pop2;
@@ -29,11 +27,12 @@ doc *** GA(doc *docs, int nDoc, int * nClu, const int minK, const int maxK) {
   Bits = (int) log2(nDoc-1)+1;
 
   genPops(minK, maxK, docs, nDoc); // initialisation des populations
+  if (verboseGa) report(-1);
 	for (int gen = 0 ; gen < MaxGen ; gen++) {
     statistics(&Pop1);
     scale(&Pop1);
     generate(docs, nDoc);
-    report(gen);
+    if (verboseGa) report(gen);
     Pop1 = Pop2;
   }
 
@@ -52,7 +51,8 @@ doc *** GA(doc *docs, int nDoc, int * nClu, const int minK, const int maxK) {
     clusters[i] = (doc **) malloc((nDoc+2) * sizeof(doc *));
     if (clusters[i] == NULL) usage("error malloc in GA");
   }
-  int nIn[*nClu];
+
+  int nIn[*nClu]; // nombre de doc ds chq clusters
   memset(nIn, 0, *nClu * sizeof(int));
 
   int * ptype = decode(ind->Gtype, ind->Len); // calculer le ptype
@@ -169,11 +169,10 @@ int genPops_cmpfunc(const void * a, const void * b) {
 }
 
 void genPops(const int minK, const int maxK, doc *docs, int nDoc) {
-  int mul = 4;
   Population bigPop;
-  allocPop(&bigPop, PopSize * mul, maxK);     // pop n°0 mul fois plus grosse
+  allocPop(&bigPop, PopSize * multPop0, maxK);// pop n°0 multPop0 fois plus grosse
 
-  for (int i = 0; i < PopSize * mul; i++) {
+  for (int i = 0; i < PopSize * multPop0; i++) {
     int K = randRange(minK, maxK+1);          // taille aléatoire
     indiv ind = &bigPop.A[i]; // look out ~~~
     makeChromo(ind->Gtype.A, K, nDoc);
@@ -181,7 +180,7 @@ void genPops(const int minK, const int maxK, doc *docs, int nDoc) {
   }
 
   // trier bigPop pr avoir meilleur en haut
-  qsort(bigPop.A, PopSize * mul, sizeof(individual), genPops_cmpfunc);
+  qsort(bigPop.A, PopSize * multPop0, sizeof(individual), genPops_cmpfunc);
 
   allocPop(&Pop2, PopSize, maxK);
   Pop1 = Pop2;
@@ -194,7 +193,7 @@ void genPops(const int minK, const int maxK, doc *docs, int nDoc) {
     Pop1.A[i].Parent_2 = bigPop.A[i].Parent_2;
   }
   // bigPop n'est plus utile → free
-  for (int i = 0; i < PopSize*mul; i++) free((&bigPop.A[i])->Gtype.A);
+  for (int i = 0; i < PopSize*multPop0; i++) free((&bigPop.A[i])->Gtype.A);
   free(bigPop.A);
 }
 

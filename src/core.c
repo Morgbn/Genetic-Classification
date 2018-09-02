@@ -114,12 +114,12 @@ doc * getData(const char * path, int * len) {
     for (int i = 0; i < nDoc; i++)
       tfidf(docList[i].terms, maxO[i], nDoc, termInNDoc);
   }
-  // print
-  for (int i = 0; i < nDoc; i++) {
-    printf("%s :\n", docList[i].name);
-    displayPathsVals(docList[i].terms, Float);
-    puts(" ");puts(" ");
-  }
+  if (verboseLemm)
+    for (int i = 0; i < nDoc; i++) {
+      printf("%s :\n", docList[i].name);
+      displayPathsVals(docList[i].terms, Float);
+      puts(" ");puts(" ");
+    }
 
   freeNode(termInNDoc, 1, 1);
   freeNode(listTerms, 1, 1);
