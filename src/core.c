@@ -1,6 +1,7 @@
 #include "core.h"
 
-const float threshold = .15;
+const float thresholdAll  = .3;
+const float thresholdEach = .2;
 
 doc * getData(const char * path, int * len) {
   struct dirent *file;
@@ -73,8 +74,8 @@ doc * getData(const char * path, int * len) {
       int nbO = nLeaf(aDoc);                  // nombre d'occurrence
       divideAllTreeBy(aDoc, nTermIn[nDoc]);   // ÷ chq occurrence par le nb de terme
       float fAv = (float) sumO / nbO / nTermIn[nDoc]; // fréquence moyenne
-      float min = fAv-fAv*threshold;          // seuil +- 10% de la moyenne
-      float max = fAv+fAv*threshold;
+      float min = fAv-fAv*thresholdEach;      // seuil +- 20% de la moyenne
+      float max = fAv+fAv*thresholdEach;
       applyLuhn(aDoc, min, max);              // application de la conjecture de Luhn
     }
 
@@ -89,8 +90,8 @@ doc * getData(const char * path, int * len) {
 
     // appliquer de la conjecture de Luhn sur tt les termes
     float fAv = (float) sumO / nbO / nTerm;   // fréquence moyenne
-    float min = fAv-fAv*threshold;            // seuil +- 15% de la moyenne
-    float max = fAv+fAv*threshold;
+    float min = fAv-fAv*thresholdAll;         // seuil +- 30% de la moyenne
+    float max = fAv+fAv*thresholdAll;
     applyLuhn(occOfTerms, min, max);
     cleanTree(occOfTerms);
 
