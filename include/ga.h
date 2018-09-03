@@ -12,24 +12,16 @@
 
 extern int verboseGa, multPop0, MaxGen, PopSize;
 
-typedef char boolean ;
-typedef boolean allele ;
-
-typedef struct {
-  allele *A;
-} Chromo;
+typedef int Chromo[256]; // maximum 256 cluster
 
 typedef struct { // données d'un individu
   Chromo Gtype;
-  int * Ptype;
+  int * Ptype;   // pr le style
   int Len;       // nombre de clusters
 	double Fitness;
-	int Parent_1, Parent_2, CrossPoint;
 } individual, * indiv;
 
-typedef struct {
-  individual *A;
-} Population;
+typedef indiv * Population;
 
 /**
  * Genetic Algo
@@ -55,6 +47,49 @@ doc *** GA(doc *docs, int nDoc, int * nClu, const int minK, const int maxK);
 double objectiveFunc(int * ptype, int K, doc *docs, int nDoc);
 
 /**
+ * Créer un chromosome
+ * @param chromo  chromosome
+ * @param K       nombre d'info codé
+ * @param nDoc    nombre de document
+ */
+void makeChromo(Chromo chromo, int K, int nDoc);
+
+/**
+ * Afficher un chromosome
+ * @param chromo chromosome
+ * @param K     nombre d'info codé
+ */
+void putchrom(Chromo chromo, int K);
+
+/**
+ * Afficher des infomations utiles à la maintenance de l'algo
+ * @param gen numéro de la génération
+ */
+void report(int gen);
+
+/**
+ * Allouer une population
+ * @param  popSize taille de la population
+ * @param  k       nombre d'info codée
+ * @return         population
+ */
+Population allocPop(const int popSize, const int k);
+
+/**
+ * Supprimer une population
+ * @param popSize taille de la population
+ * @param pop     population
+ */
+void freePop(Population pop, const int popSize);
+
+/**
+ * Copier une population
+ * @param pop  population à copier
+ * @param copy copie
+ */
+void copyPop(Population pop, Population copy);
+
+/**
  * Décoder un génotype
  * @param  Gtype génotype
  * @param  K     nombre d'info codé
@@ -70,41 +105,6 @@ int * decode(Chromo Gtype, int K);
 int decodeSpec(char * spec);
 
 /**
- * Créer un chromosome
- * @param chromo  emplacement du chromosome
- * @param K       nombre d'info codé
- * @param nDoc    nombre de document
- */
-void makeChromo(allele * chromo, int K, int nDoc);
-
-/**
- * Afficher un chromosome
- * @param Gtype chromosome
- * @param K     nombre d'info codé
- */
-void putchrom(Chromo Gtype, int K);
-
-/**
- * Afficher des infomations utiles à la maintenance de l'algo
- * @param gen numéro de la génération
- */
-void report(int gen);
-
-/**
- * Collecte les statistiques globales
- * @param pop population
- */
-void statistics(Population * pop);
-
-/**
- * Allouer une population
- * @param pop     population
- * @param popSize taille de la population
- * @param k       nombre d'info codée
- */
-void allocPop(Population * pop, const int popSize, const int k);
-
-/**
  * Initialise les populations
  * la 1er aléatoirement
  * et fait de la place pour Pop2
@@ -116,10 +116,16 @@ void allocPop(Population * pop, const int popSize, const int k);
 void genPops(const int minK, const int maxK, doc *docs, int nDoc);
 
 /**
+ * Collecte les statistiques globales
+ * @param pop population
+ */
+void statistics(Population pop);
+
+/**
  * linear transformation of Fitness curve
  * @param pop population
  */
-void scale(Population * pop);
+void scale(Population pop);
 
 /**
  * generer une population aléatoirement
@@ -129,21 +135,20 @@ void scale(Population * pop);
 void generate(doc *docs, int nDoc);
 
 /**
- * Regarde si deux alleles sont identiques
- * @param  A 1er allele
- * @param  B 2eme allele
- * @return   1 si identiques, 0 sinon
- */
-int isSameAllele(allele * A, allele * B);
-
-/**
  * Regarde si un allele est présent dans un chromosome
  * @param  el  allele
  * @param  arr chromosome
  * @param  len taille du chromosome
  * @return     1 si présent, 0 sinon
  */
-int alleleInChromo(allele * el, Chromo * arr, int len);
+int alleleInChromo(int el, Chromo chromo, int len);
+
+/**
+ * Copier un chromosome
+ * @param P1 chromosome à copier
+ * @param C1 copie
+ */
+void copyChromo(Chromo P1, Chromo C1);
 
 /**
  * Effectuer crossover entre 2 chromos
@@ -155,19 +160,16 @@ int alleleInChromo(allele * el, Chromo * arr, int len);
  * @param  K2 taille 2eme enfant
  * @return    point du crossover
  */
-int crossover(Chromo * P1, Chromo * P2, Chromo * C1, Chromo * C2, int K1, int K2);
+void crossover(Chromo P1, Chromo P2, Chromo C1, Chromo C2, int K1, int K2);
 
 /**
  * Mettre à jour un individu
  * @param ind   individu
- * @param m1    1er parent
- * @param m2    2eme parent
- * @param X     point du crossover
  * @param newK  nouvelle taille
  * @param docs  liste de document
  * @param nDoc  nombre de document
  */
-void updateIndiv(indiv ind, int m1, int m2, int X, int newK, doc *docs, int nDoc);
+void updateIndiv(indiv ind, int newK, doc *docs, int nDoc);
 
 /**
  * Mélanger un vecteur de int
@@ -182,21 +184,21 @@ void shuffleVect(int * a, int len);
  * @param  pop population
  * @return     individus
  */
-int * pick(Population * pop);
+int * pick(Population pop);
 
 /**
- * Effectuer une mutation (0→1; 1→0)
- * @param  bval allele à muter (ou pas)
- * @return      allele muté (ou pas)
+ * Effectuer une mutation
+ * @param  val allele à muter (ou pas)
+ * @return     allele muté (ou pas)
  */
-allele mutate(allele bval);
+int mutate(int val);
 
 /**
  * pile ou face
  * @param  proba probabilité
  * @return       vrai ou faux
  */
-boolean flip(double proba);
+int flip(double proba);
 
 /**
  * Générer un nb aléatoire entre deux bornes
@@ -207,6 +209,6 @@ boolean flip(double proba);
 int randRange(int low, int high);
 
 /** @return réel aléatoire */
-double floatRand(); // INLINE ???
+double floatRand();
 
 #endif

@@ -2,8 +2,6 @@
 
 /**
  * VARIABLE GLOBAL :
- * @global Bits          nombre de bits pr coder l'information
- *                       - trouver automatiquement dans ga() -
  * @global ProbCross     probabilité crossover
  * @global ProbMut       probabilité mutation
  * @global GlobalFitness somme des valeurs d'aptitude
@@ -13,7 +11,6 @@
  * @global Pop1          population parent
  * @global Pop2          population enfant
  */
-int Bits;
 double ProbCross = .95, ProbMut   = .02;
 double GlobalFitness, Average, MaxFit, MinFit;
 Population Pop1, Pop2;
@@ -23,23 +20,20 @@ doc *** GA(doc *docs, int nDoc, int * nClu, const int minK, const int maxK) {
   if (nDoc < 2)         // regroupe pas - de 2 doc
     usage("Le dossier ne contient qu'un fichier!");
 
-  // calculer le nombre de bits nécessaire
-  Bits = (int) log2(nDoc-1)+1;
-
   genPops(minK, maxK, docs, nDoc); // initialisation des populations
   if (verboseGa) report(-1);
 	for (int gen = 0 ; gen < MaxGen ; gen++) {
-    statistics(&Pop1);
-    scale(&Pop1);
+    statistics(Pop1);
+    scale(Pop1);
     generate(docs, nDoc);
     if (verboseGa) report(gen);
-    Pop1 = Pop2;
+    copyPop(Pop2, Pop1);
   }
 
   // récupérer le meilleur clustering trouvé
   indiv ind;
   for (int j = 0; j < PopSize; j++) {
-    ind = &Pop1.A[j];
+    ind = Pop1[j];
     if (ind->Fitness == MaxFit) break;
   }
   *nClu = ind->Len;
@@ -55,7 +49,7 @@ doc *** GA(doc *docs, int nDoc, int * nClu, const int minK, const int maxK) {
   int nIn[*nClu]; // nombre de doc ds chq clusters
   memset(nIn, 0, *nClu * sizeof(int));
 
-  int * ptype = decode(ind->Gtype, ind->Len); // calculer le ptype
+  int * ptype = ind->Gtype;
   for (int ki = 0; ki < *nClu; ki++)          // mettre en tête les centres
     clusters[ki][nIn[ki]++] = &docs[ptype[ki]];
 
@@ -74,9 +68,11 @@ doc *** GA(doc *docs, int nDoc, int * nClu, const int minK, const int maxK) {
     clusters[i][nIn[i]] = NULL;
 
   // FREE variables non retournés
-  free(ptype);
-  for (int i = 0; i < PopSize; i++) free((&Pop2.A[i])->Gtype.A);
-  free(Pop2.A);
+  // free(ptype);
+  // for (int i = 0; i < PopSize; i++) free((&Pop2.A[i])->Gtype.A);
+  // free(Pop2.A);
+  freePop(Pop1, PopSize);
+  freePop(Pop2, PopSize);
 
   return clusters;
 }
@@ -103,62 +99,60 @@ double objectiveFunc(int * ptype, int K, doc *docs, int nDoc) {
   return 1 / score;                       // score inversé (+ petit = mieux)
 }
 
-int * decode(Chromo Gtype, int K)	{
-  int * ptype = (int *) malloc(K * sizeof(int));
-  if (ptype == NULL) usage("error malloc in decode");
-
-  for (int ki = 0; ki < K; ki++) {
-    char * bitstr = &Gtype.A[ki * Bits];  // centres ki
-    ptype[ki] = decodeSpec(bitstr);
-  }
-	return ptype;
+void makeChromo(Chromo chromo, int K, int nDoc) {
+  for (int i = 0; i < K; i++)
+    chromo[i] = randRange(0, nDoc+1);       // nb aléatoire entre 0 et le nb de doc
 }
 
-int decodeSpec(char * spec) {
-  int value = 0;
-	for (int B = Bits - 1, power = 1 ; B >= 0 ; B--, power *= 2)
-		value += spec[B] * power;
-	return value;
-}
-
-void makeChromo(allele * chromo, int K, int nDoc) {
-  for (int i = 0; i < K*Bits;) {
-    int n = randRange(0, nDoc+1);         // nb aléatoire entre 0 et le nb de doc
-    for (int c = Bits-1; c >= 0; c--) {   // converti en binaire
-      int k = n >> c;
-      chromo[i++] = (k & 1) ? 1 : 0;
-    }
-  }
-}
-
-void putchrom(Chromo Gtype, int K) {
+void putchrom(Chromo chromo, int K) {
   printf("[");
-  for (int p = 0; p < K; p++) {
-    char * bitstr = &(Gtype.A[p * Bits]);
-    printf("%i%s", decodeSpec(bitstr), (p+1==K) ? "" : ", ");
-  }
+  for (int p = 0; p < K; p++)
+    printf("%i%s", chromo[p], (p+1==K) ? "" : ", ");
   printf("]");
 }
 
 void report(int gen) {
   printf("++Gen n° %i ; MinFit = %g ; Av = %g ; MaxFit = %g ; GF = %g\n", gen, MinFit, Average, MaxFit, GlobalFitness);
   for (int i = 0; i < PopSize; i++) {
-    indiv ind = &Pop1.A[i];	// old string
     printf("(%03d) ", i);
-    putchrom(ind->Gtype, ind->Len);
-    printf(" score = %g\n", ind->Fitness);
+    putchrom(Pop1[i]->Gtype, Pop1[i]->Len);
+    printf(" score = %g\n", Pop1[i]->Fitness);
   }
   puts(" ");
 }
 
-void allocPop(Population * pop, const int popSize, const int k) {
-  pop->A = (individual *) malloc(popSize * sizeof(individual));
-  if (pop->A == NULL) usage("malloc error in allocPop");
+Population allocPop(const int popSize, const int k) {
+  Population pop = NULL;
+  pop = (Population) malloc(popSize * sizeof(indiv));
+  if (pop == NULL) usage("malloc error in allocPop");
 
   for (int i = 0; i < popSize; i++) {
-    indiv ind = &pop->A[i];
-    ind->Gtype.A = (allele *) malloc((k * Bits) * sizeof(allele));
-    if (ind->Gtype.A == NULL) usage("malloc error in genPops");
+    pop[i] = NULL;
+    pop[i] = (indiv) calloc(1, sizeof(individual)); // calloc ?
+    if (pop[i] == NULL) usage("malloc error in allocPop");
+    // memset(pop[i]->Gtype, 0, 256 * sizeof(int));
+  //   indiv ind = &pop->A[i];
+  //   ind->Gtype.A = (allele *) malloc((k * Bits) * sizeof(allele));
+  //   if (ind->Gtype.A == NULL) usage("malloc error in genPops");
+  }
+  return pop;
+}
+
+void freePop(Population pop, const int popSize) {
+  for (int i = 0; i < popSize; i++) {
+    free(pop[i]);
+    pop[i] = NULL;
+  }
+  free(pop);
+  pop = NULL;
+}
+
+void copyPop(Population pop, Population copy) {
+  for (int i = 0; i < PopSize; i++) {
+    copyChromo(pop[i]->Gtype, copy[i]->Gtype);
+    copy[i]->Ptype = NULL;
+    copy[i]->Len = pop[i]->Len;
+    copy[i]->Fitness = pop[i]->Fitness;
   }
 }
 
@@ -169,50 +163,43 @@ int genPops_cmpfunc(const void * a, const void * b) {
 }
 
 void genPops(const int minK, const int maxK, doc *docs, int nDoc) {
-  Population bigPop;
-  allocPop(&bigPop, PopSize * multPop0, maxK);// pop n°0 multPop0 fois plus grosse
-
+  // pop n°0 multPop0 fois plus grosse
+  Population bigPop = allocPop(PopSize * multPop0, maxK);
   for (int i = 0; i < PopSize * multPop0; i++) {
     int K = randRange(minK, maxK+1);          // taille aléatoire
-    indiv ind = &bigPop.A[i]; // look out ~~~
-    makeChromo(ind->Gtype.A, K, nDoc);
-    updateIndiv(ind, 0, 0, 0, K, docs, nDoc);
+    makeChromo(bigPop[i]->Gtype, K, nDoc);
+    updateIndiv(bigPop[i], K, docs, nDoc);
   }
 
   // trier bigPop pr avoir meilleur en haut
-  qsort(bigPop.A, PopSize * multPop0, sizeof(individual), genPops_cmpfunc);
+  qsort(bigPop, PopSize * multPop0, sizeof(indiv), genPops_cmpfunc);
 
-  allocPop(&Pop2, PopSize, maxK);
-  Pop1 = Pop2;
+  Pop2 = allocPop(PopSize, maxK);
+  Pop1 = allocPop(PopSize, maxK);
   for (int i = 0; i < PopSize; i++) {         // copier les valides
-    for (int j = 0; j < bigPop.A[i].Len * Bits; j++)
-      Pop1.A[i].Gtype.A[j] = bigPop.A[i].Gtype.A[j];
-    Pop1.A[i].Len = bigPop.A[i].Len;          // (important!)
-    Pop1.A[i].Fitness = bigPop.A[i].Fitness;  // (aussi)
-    Pop1.A[i].Parent_1 = bigPop.A[i].Parent_1;// (moins)
-    Pop1.A[i].Parent_2 = bigPop.A[i].Parent_2;
+    copyChromo(bigPop[i]->Gtype, Pop1[i]->Gtype);
+    Pop1[i]->Len = bigPop[i]->Len;          // (important!)
+    Pop1[i]->Fitness = bigPop[i]->Fitness;  // (aussi)
   }
   // bigPop n'est plus utile → free
-  for (int i = 0; i < PopSize*multPop0; i++) free((&bigPop.A[i])->Gtype.A);
-  free(bigPop.A);
+  freePop(bigPop, PopSize * multPop0);
 }
 
-void statistics(Population * pop)	{
+void statistics(Population pop)	{
   MaxFit = 0;
   MinFit = 0;
   GlobalFitness = 0;
 	for (int x = 0; x < PopSize; x++) {
-	  indiv ind = &pop->A[x];
-    if (ind->Fitness < 0) continue;       // indiv invalide
-		GlobalFitness += ind->Fitness;
-		if (ind->Fitness > MaxFit) MaxFit = ind->Fitness;
+    if (pop[x]->Fitness < 0) continue;       // indiv invalide
+		GlobalFitness += pop[x]->Fitness;
+		if (pop[x]->Fitness > MaxFit) MaxFit = pop[x]->Fitness;
 		if (!MinFit ||
-        ind->Fitness < MinFit) MinFit = ind->Fitness;
+        pop[x]->Fitness < MinFit) MinFit = pop[x]->Fitness;
   }
 	Average = GlobalFitness / (double) PopSize;
 }
 
-void scale(Population * pop) {
+void scale(Population pop) {
   const double FM = 2;	                  // espérance du nb de copies souhaité pour le meilleur individu
 	double delta, slope, offset;	          // slope and offset for linear equation
   //	calculer le coefficient pr la transformation linéaire
@@ -228,74 +215,64 @@ void scale(Population * pop) {
   }
 	GlobalFitness = 0;
 	for (int x = 0; x < PopSize; x++) {
-    indiv ind = &pop->A[x];
-    if (ind->Fitness < 0) continue; // ne pas s'occuper des indiv non valides
-		ind->Fitness = (slope * (ind->Fitness)) + offset;	// y = ax + b, translated adaptation value
-		GlobalFitness += ind->Fitness;
+    if (pop[x]->Fitness < 0) continue; // ne pas s'occuper des indiv non valides
+		pop[x]->Fitness = (slope * (pop[x]->Fitness)) + offset;	// y = ax + b, translated adaptation value
+		GlobalFitness += pop[x]->Fitness;
   }
 }
 
 void generate(doc *docs, int nDoc) {
-  int X ;	                                // crossover point
-  int * picked1 = pick(&Pop1);            // select mates
+  int * picked1 = pick(Pop1);             // select mates
 	for (int z = 0; z < PopSize; z += 2) {
     int m1 = picked1[z];	                // selected mate 1
 		int m2 = picked1[z+1];                // selected mate 2
-		X = crossover(
-      &Pop1.A[m1].Gtype, &Pop1.A[m2].Gtype,
-      &Pop2.A[z].Gtype, &Pop2.A[z+1].Gtype,
-      Pop1.A[m1].Len, Pop1.A[m2].Len
+		crossover(
+      Pop1[m1]->Gtype, Pop1[m2]->Gtype,
+      Pop2[z]->Gtype, Pop2[z+1]->Gtype,
+      Pop1[m1]->Len, Pop1[m2]->Len
     );
-		updateIndiv(&Pop2.A[z], m1, m2, X, Pop1.A[m1].Len, docs, nDoc);
-		updateIndiv(&Pop2.A[z + 1], m1, m2, X, Pop1.A[m2].Len, docs, nDoc);
+		updateIndiv(Pop2[z]  , Pop1[m1]->Len, docs, nDoc);
+		updateIndiv(Pop2[z+1], Pop1[m2]->Len, docs, nDoc);
   }
   free(picked1);
 }
 
-int isSameAllele(allele * A, allele * B) {
-  for (int i = 0; i < Bits; i++)
-    if (A[i] != B[i]) return 0;
-  return 1;
-}
-
-int alleleInChromo(allele * el, Chromo * arr, int len) {
-  for (int i = 0; i < len * Bits; i+=Bits)
-    if (isSameAllele(&arr->A[i], el)) return 1; // el ds arr
+int alleleInChromo(int el, Chromo chromo, int len) {
+  for (int i = 0; i < len; i++)
+    if (el == chromo[i]) return 1; // el ds chromo
   return 0;
 }
 
-int crossover(Chromo * P1, Chromo * P2, Chromo * C1, Chromo * C2, int K1, int K2) {
-  C1 = P1; C2 = P2; // copie pointeur
-  if (!flip(ProbCross)) return 0; // pas de crossover (pas de mutation)
+void copyChromo(Chromo P1, Chromo C1) {
+  for (int i = 0; i < 256; i++) C1[i] = mutate(P1[i]);
+}
+
+void crossover(Chromo P1, Chromo P2, Chromo C1, Chromo C2, int K1, int K2) {
+  copyChromo(P1, C1);
+  copyChromo(P2, C2);
+  if (!flip(ProbCross)) return; // pas de crossover
 
   int Kmax = (K1 >= K2) ? K1 : K2;
   int U1[Kmax], U2[Kmax]; // index des centres ne se retrouvant pas dans l'autre
   int u1 = 0, u2 = 0;
 
-  for (int i = 0; i < K1 * Bits; i+=Bits)
-    if (!alleleInChromo(&C1->A[i], C2, K2)) U1[u1++] = i; // centres non présents dans P2
-  for (int i = 0; i < K2 * Bits; i+=Bits)
-    if (!alleleInChromo(&C2->A[i], C1, K1)) U2[u2++] = i; // centres non présents dans P2
+  for (int i = 0; i < K1; i++)
+    if (!alleleInChromo(P1[i], P2, K2)) U1[u1++] = i; // centres non présents dans P2
+  for (int i = 0; i < K2; i++)
+    if (!alleleInChromo(P2[i], P1, K1)) U2[u2++] = i; // centres non présents dans P2
 
   int Umin = (u1 < u2) ? u1 : u2;
   for (int i = 0; i < Umin; i++) {
     if (flip(ProbCross) > 0.5) continue; // 1 chance sur 2 de crossover ce centre
-    for (int b = 0; b < Bits; b++) {  // copier tt les bits codant le centre
-      allele tmp = C1->A[U1[i]+b];
-      C1->A[U1[i]+b] = C2->A[U2[i]+b];
-      C2->A[U1[i]+b] = tmp;
-    }
+    int tmp = C1[U1[i]];
+    C1[U1[i]] = C2[U2[i]];               // inter changer les centres
+    C2[U2[i]] = tmp;
   }
-  return 0; // useless
 }
 
-void updateIndiv(indiv ind, int m1, int m2, int X, int newK, doc *docs, int nDoc)	{
-	ind->Ptype = decode(ind->Gtype, newK);
+void updateIndiv(indiv ind, int newK, doc *docs, int nDoc)	{
+	ind->Ptype = ind->Gtype;
 	ind->Fitness = objectiveFunc(ind->Ptype, newK, docs, nDoc);
-  free(ind->Ptype);
-	ind->Parent_1 = m1;
-	ind->Parent_2 = m2;
-	ind->CrossPoint = X;
   ind->Len = newK;
 }
 
@@ -310,7 +287,7 @@ void shuffleVect(int * a, int len) {
   }
 }
 
-int * pick(Population * pop) {
+int * pick(Population pop) {
   int * picked = NULL, npick = 0;
   picked = (int *) malloc(PopSize * sizeof(int));
   if (picked == NULL) usage("error malloc in pick");
@@ -319,8 +296,8 @@ int * pick(Population * pop) {
   int N[PopSize];                         // partie entière de expected
   double sumR = 0;                        // somme des restes
   for (int i = 0; i < PopSize; i++) {
-    if (pop->A[i].Fitness < 0) expected[i] = 0;
-    else expected[i] = pop->A[i].Fitness / (GlobalFitness / PopSize);
+    if (pop[i]->Fitness < 0) expected[i] = 0;
+    else expected[i] = pop[i]->Fitness / (GlobalFitness / PopSize);
     N[i] = (int) expected[i];
     expected[i] -= N[i];                  // laisser le reste dans expected
     sumR += expected[i];
@@ -352,15 +329,19 @@ int * pick(Population * pop) {
   return picked;
 }
 
-allele mutate(allele bval) {
-  if (flip(ProbMut)) bval = !bval;
-	return (allele) bval;
+int mutate(int val) {
+  if (flip(ProbMut)) {
+    float mul = floatRand();  // diminuer val
+    if (flip(.5)) mul += 1;   // ou l'augmenter
+    val *= mul;
+  }
+	return val;
 }
 
-boolean flip(double proba) {
+int flip(double proba) {
   if (!(proba < 1)) return 1;
   double x = floatRand();
-  return (boolean) (x <= proba);
+  return (x <= proba);
 }
 
 int randRange(int low, int high) {
