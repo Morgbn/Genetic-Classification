@@ -68,9 +68,6 @@ doc *** GA(doc *docs, int nDoc, int * nClu, const int minK, const int maxK) {
     clusters[i][nIn[i]] = NULL;
 
   // FREE variables non retournés
-  // free(ptype);
-  // for (int i = 0; i < PopSize; i++) free((&Pop2.A[i])->Gtype.A);
-  // free(Pop2.A);
   freePop(Pop1, PopSize);
   freePop(Pop2, PopSize);
 
@@ -128,20 +125,19 @@ Population allocPop(const int popSize, const int k) {
 
   for (int i = 0; i < popSize; i++) {
     pop[i] = NULL;
-    pop[i] = (indiv) calloc(1, sizeof(individual)); // calloc ?
+    pop[i] = (indiv) calloc(1, sizeof(individual));
     if (pop[i] == NULL) usage("malloc error in allocPop");
-    // memset(pop[i]->Gtype, 0, 256 * sizeof(int));
-  //   indiv ind = &pop->A[i];
-  //   ind->Gtype.A = (allele *) malloc((k * Bits) * sizeof(allele));
-  //   if (ind->Gtype.A == NULL) usage("malloc error in genPops");
+
+    pop[i]->Gtype = (int *) calloc(k, sizeof(int));
+    if (pop[i]->Gtype == NULL) usage("malloc error in genPops");
   }
   return pop;
 }
 
 void freePop(Population pop, const int popSize) {
   for (int i = 0; i < popSize; i++) {
-    free(pop[i]);
-    pop[i] = NULL;
+    free(pop[i]->Gtype); pop[i]->Gtype = NULL;
+    free(pop[i]); pop[i] = NULL;
   }
   free(pop);
   pop = NULL;
@@ -149,7 +145,7 @@ void freePop(Population pop, const int popSize) {
 
 void copyPop(Population pop, Population copy) {
   for (int i = 0; i < PopSize; i++) {
-    copyChromo(pop[i]->Gtype, copy[i]->Gtype);
+    copyChromo(pop[i]->Gtype, copy[i]->Gtype, pop[i]->Len);
     copy[i]->Ptype = NULL;
     copy[i]->Len = pop[i]->Len;
     copy[i]->Fitness = pop[i]->Fitness;
@@ -177,7 +173,7 @@ void genPops(const int minK, const int maxK, doc *docs, int nDoc) {
   Pop2 = allocPop(PopSize, maxK);
   Pop1 = allocPop(PopSize, maxK);
   for (int i = 0; i < PopSize; i++) {         // copier les valides
-    copyChromo(bigPop[i]->Gtype, Pop1[i]->Gtype);
+    copyChromo(bigPop[i]->Gtype, Pop1[i]->Gtype, bigPop[i]->Len);
     Pop1[i]->Len = bigPop[i]->Len;          // (important!)
     Pop1[i]->Fitness = bigPop[i]->Fitness;  // (aussi)
   }
@@ -243,13 +239,15 @@ int alleleInChromo(int el, Chromo chromo, int len) {
   return 0;
 }
 
-void copyChromo(Chromo P1, Chromo C1) {
-  for (int i = 0; i < 256; i++) C1[i] = mutate(P1[i]);
+void copyChromo(Chromo P1, Chromo C1, int k) {
+  C1 = (Chromo) realloc(C1, k * sizeof(int));
+  if (C1 == NULL) usage("error realloc copyChromo");
+  for (int i = 0; i < k; i++) C1[i] = mutate(P1[i]);
 }
 
 void crossover(Chromo P1, Chromo P2, Chromo C1, Chromo C2, int K1, int K2) {
-  copyChromo(P1, C1);
-  copyChromo(P2, C2);
+  copyChromo(P1, C1, K1);
+  copyChromo(P2, C2, K2);
   if (!flip(ProbCross)) return; // pas de crossover
 
   int Kmax = (K1 >= K2) ? K1 : K2;

@@ -12,7 +12,7 @@
 
 extern int verboseGa, multPop0, MaxGen, PopSize;
 
-typedef int Chromo[256]; // maximum 256 cluster
+typedef int * Chromo; // maximum 256 cluster
 
 typedef struct { // données d'un individu
   Chromo Gtype;
@@ -147,8 +147,9 @@ int alleleInChromo(int el, Chromo chromo, int len);
  * Copier un chromosome
  * @param P1 chromosome à copier
  * @param C1 copie
+ * @param k  taille de P1
  */
-void copyChromo(Chromo P1, Chromo C1);
+void copyChromo(Chromo P1, Chromo C1, int k);
 
 /**
  * Effectuer crossover entre 2 chromos
