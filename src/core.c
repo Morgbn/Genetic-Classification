@@ -30,6 +30,7 @@ doc * getData(const char * path, int * len) {
 
     maxO = (int *) realloc(maxO, (nDoc+1)*sizeof(int));
     if (maxO == NULL) usage("error realloc in getData");
+    maxO[nDoc] = 0;
 
     nTermIn = (int *) realloc(nTermIn, (nDoc+1)*sizeof(int));
     if (nTermIn == NULL) usage("error realloc in getData");
