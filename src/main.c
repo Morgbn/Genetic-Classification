@@ -8,13 +8,27 @@ int main(int argc, char const *argv[]) {
   }
   srand(time(NULL));
 
-  /* DEF GLOBAL - par défaut : */
-  TF_IDF = 1;
+  /**
+   * VARIABLES GLOBALES (valeurs par défaut) :
+   * @global TF_IDF         utiliser la méthode de pondération TF-IDF
+   * @global LUHN_ON_ALL    utiliser la conjecture de Luhn sur le corpus
+   * @global LUHN_ON_EACH   utiliser la conjecture de Luhn sur chq doc
+   * @global USE_EUCL_DIST  utiliser la distance euclidienne
+   * @global verboseLemm    afficher le résultat de la lemmatisation
+   * @global verboseGa      afficher le report de l'algorithme génétique
+   * @global verboseDist    afficher la distance entre les documents
+   * @global multPop0       multiplicateur pour la 1er population
+   * @global MaxGen         nombre de génération
+   * @global PopSize        taille de la population
+   * @global minK           nombre minimal de groupe à créer
+   * @global maxK           nombre maximal de groupe à créer
+   */
+  TF_IDF = 0;
   LUHN_ON_ALL = LUHN_ON_EACH = USE_EUCL_DIST = 0;
   verboseLemm = verboseGa = verboseDist = 0;
   multPop0 = 4;
   MaxGen = 1000, PopSize = 100;
-  minK =  maxK = -1; // réglé plus tard
+  minK = maxK = -1;                           // réglé plus tard
 
   for (int i = 1; i < argc;)                  // traiter toutes les options
     i += changeOption(i, argv, argc);
