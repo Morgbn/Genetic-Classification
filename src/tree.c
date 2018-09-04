@@ -91,6 +91,7 @@ void displayPaths(treeList head) {
   if (head->val) {
     char * path = getTreePath(head, 1);
     if (path != NULL) printf("%s\n", path);
+    free(path);
   }
   for (int i = 0; i < head->nChilds; i++) // afficher la suite (les enfants)
     displayPaths(head->childs[i]);
@@ -109,6 +110,7 @@ void displayPathsVals(treeList head, type t) {
         case Int:    printf("%i\n", *(int *)   head->val); break;
       }
     }
+    free(path);
   }
   for (int i = 0; i < head->nChilds; i++) // afficher la suite (les enfants)
     displayPathsVals(head->childs[i], t);
@@ -147,20 +149,26 @@ int nLeaf(treeList head) {
   return n;
 }
 
-void freeNode(treeList aNode, int freeChilds, int freeVal) {
-  if (freeChilds) {                            // supprimer les enfants
-    for (int i = 0; i < aNode->nChilds; i++)
-      freeNode(aNode->childs[i], 0, 0);
-    free(aNode->childs);
-    aNode->nChilds = 0;
+void freeNode(treeList aNode, int freeVal) {
+  for (int i = 0; i < aNode->nChilds; i++)
+    freeNode(aNode->childs[i], freeVal);
+  free(aNode->childs);
+  aNode->childs = NULL;
+
+  if (freeVal) {
+    free(aNode->val);
+    aNode->val = NULL;
   }
 
-  if (freeVal && aNode->val) free(aNode->val); // libérer la valeur attaché
-  aNode->val = NULL;                           // supprimer le pointeur
+  free(aNode);
+  aNode = NULL;
+}
 
-  if (aNode->nChilds == 0) {                   // node inutile, rien après
-    treeList parent = aNode->parent;
-    if (parent == NULL) return;                // ne pas supprimer racine de l'abre !
+void delNode(treeList aNode, int freeVal) {
+  if (aNode == NULL) return;
+  // decaler la node à la fin des enfants du parent
+  treeList parent = aNode->parent;
+  if (parent != NULL) {
     int j = 0;
     for (int i = 0; i < parent->nChilds-1; i++) {
       if (parent->childs[i]->c == aNode->c) j = 1;
@@ -168,10 +176,9 @@ void freeNode(treeList aNode, int freeChilds, int freeVal) {
     }
     parent->childs[parent->nChilds-1] = NULL;  // au cas ou
     parent->nChilds--;
-    if (parent->nChilds == 0 && !parent->val) // node parent inutile
-      freeNode(parent, 0, freeVal);
-    free(aNode);
   }
+  // nettoyer
+  freeNode(aNode, freeVal);
 }
 
 void cleanTree(treeList head) {
@@ -207,6 +214,16 @@ int main(int argc, char const *argv[]) {
   addToTree(a, (char *) "ace", &arr[10]);
   displayNodes(a, 1, Float);
 
+  float * ptr = malloc(1*sizeof(float));
+  if (ptr == NULL) usage("error malloc ptr");
+  *ptr = 123;
+  addToTree(a, (char *) "ptr", ptr);
+  displayNodes(a, 1, Float);
+  delNode(getNode(a, "ptr"), 1);
+  displayNodes(a, 1, Float);
+  printf("\n");
+
+
   treeList b = getNode(a, (char *) "abce");
   displayNodes(b, 1, Float);
 
@@ -219,23 +236,28 @@ int main(int argc, char const *argv[]) {
   displayNodes(c, 1, String);
   treeList aNode = getNode(c, "dac");
   displayNodes(aNode, 1, String);
-  freeNode(aNode, 0, 0);
+  delNode(aNode, 0);
   displayNodes(c, 1, String);
 
-  freeNode(getNode(c, "dacc"), 0, 0);
+  delNode(getNode(c, "dacc"), 0);
   displayNodes(c, 1, String);
 
   addToTree(c, (char *) "opppp", (void *) "del3");
-  freeNode(getNode(c, "opppp"), 0, 0);
+  displayNodes(c, 1, String);
+  delNode(getNode(c, "opppp"), 0);
   displayNodes(c, 1, String);
 
   aNode = getNode(c, "daz");
   char * path = getTreePath(aNode, 1);
   if (path != NULL) printf("%s\n", path);
+  free(path);
 
   displayVals(c, String);
   displayPaths(c);
   displayPathsVals(a, Float);
+
+  freeNode(a, 0);
+  freeNode(c, 0);
 
   return 0;
 }

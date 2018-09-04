@@ -123,9 +123,9 @@ doc * getData(const char * path, int * len) {
       puts(" ");puts(" ");
     }
 
-  freeNode(termInNDoc, 1, 1);
-  freeNode(listTerms, 1, 1);
-  freeNode(occOfTerms, 1, 1);
+  freeNode(termInNDoc, 1);
+  freeNode(listTerms, 1);
+  freeNode(occOfTerms, 1);
 
   closedir(dr);
   *len = nDoc;
