@@ -85,11 +85,12 @@ void displayPathsVals(treeList head, type t);
 
 /**
  * Ajouter des élements à l'arbre (f recursive)
- * @param head  tête de l'arbre
- * @param str   chaine de caractère
- * @param val   valeur à attacher à la fin
+ * @param head    tête de l'arbre
+ * @param str     chaine de caractère
+ * @param val     valeur à attacher à la fin
+ * @param freeVal si valeur à attacher est alloué
  */
-void addToTree(treeList head, char *str, void *val);
+void addToTree(treeList head, char *str, void *val, int freeVal);
 
 /**
  * Trouver un noeud par son nom (f recursive)

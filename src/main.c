@@ -33,12 +33,11 @@ int main(int argc, char const *argv[]) {
   for (int i = 1; i < argc;)                  // traiter toutes les options
     i += changeOption(i, argv, argc);
 
-  if (minK > maxK) usage("L'option --min prend comme argument un nombre inférieur à l'argument de --max.");
-
-  double minDist, maxDist;
+  double minDist = 1e100, maxDist = 0;
 
   int nDoc = 0;
   doc * docs = getData(argv[1], &nDoc);
+
   for (int i = 0; i < nDoc; i++) {            // calculer distance entre chq doc
     docs[i].dist = (double *) malloc((nDoc) * sizeof(double *));
     if (docs[i].dist == NULL) usage("error malloc in ...");
@@ -55,8 +54,8 @@ int main(int argc, char const *argv[]) {
           = docs[j].dist[i]
           = 1 - cosineSimilarity(docs[i].terms, docs[j].terms); // cos = 1 si similaires
       }
-      if (!i || docs[i].dist[j] > maxDist) maxDist = docs[i].dist[j];
-      if (!i || docs[i].dist[j] < minDist) minDist = docs[i].dist[j];
+      if (docs[i].dist[j] > maxDist) maxDist = docs[i].dist[j];
+      if (docs[i].dist[j] < minDist) minDist = docs[i].dist[j];
     }
   }
   for (int i = 0; i < nDoc; i++)  // normaliser les distances

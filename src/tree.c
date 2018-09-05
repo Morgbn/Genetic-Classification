@@ -116,19 +116,25 @@ void displayPathsVals(treeList head, type t) {
     displayPathsVals(head->childs[i], t);
 }
 
-void addToTree(treeList head, char *str, void *val) {
+void addToTree(treeList head, char *str, void *val, int freeVal) {
   int finded = 0, j;
   for (j = 0; j < head->nChilds && !finded; j++) { // parcours les enfants (max 26 enfants)
     if (head->childs[j]->c == *str) finded = 1;
   }
   if (finded) {
-    if (str[1] == '\0') head->childs[j-1]->val = val; // écraser valeur
-    else addToTree(head->childs[j-1], str+1, val); // char existe déjà→continuer
-  }
-  else {
-    head = appendNode(head, *str, NULL); // créer un noeud avec le char absent
-    if (str[1] == '\0') head->val = val; // fin du mot, attacher la valeur
-    else addToTree(head, str+1, val);    // sinon continuer sur nouveau noeud
+    if (str[1] == '\0') {                     // valeur déjà présente
+      if (freeVal) {
+        free(head->childs[j-1]->val);
+        head->childs[j-1]->val = NULL;
+      }
+      head->childs[j-1]->val = val;           // l'écraser
+    } else {                                  // char existe déjà→continuer
+      addToTree(head->childs[j-1], str+1, val, freeVal);
+    }
+  } else {
+    head = appendNode(head, *str, NULL);      // créer un noeud avec le char absent
+    if (str[1] == '\0') head->val = val;      // fin du mot, attacher la valeur
+    else addToTree(head, str+1, val, freeVal);// sinon continuer sur nouveau noeud
   }
 }
 
@@ -206,18 +212,18 @@ int main(int argc, char const *argv[]) {
   appendNode(a, 'b', &arr[2]);
   appendNode(a, 'c', &arr[3]);
   appendNode(a->childs[0], 'c', &arr[4]);
-  addToTree(a, (char *) "abcd", &arr[5]);
-  addToTree(a, (char *) "ok", &arr[6]);
-  addToTree(a, (char *) "abce", &arr[7]);
-  addToTree(a, (char *) "azb", &arr[8]);
-  addToTree(a, (char *) "ace", &arr[9]);
-  addToTree(a, (char *) "ace", &arr[10]);
+  addToTree(a, (char *) "abcd", &arr[5], 0);
+  addToTree(a, (char *) "ok", &arr[6], 0);
+  addToTree(a, (char *) "abce", &arr[7], 0);
+  addToTree(a, (char *) "azb", &arr[8], 0);
+  addToTree(a, (char *) "ace", &arr[9], 0);
+  addToTree(a, (char *) "ace", &arr[10], 0);
   displayNodes(a, 1, Float);
 
   float * ptr = malloc(1*sizeof(float));
   if (ptr == NULL) usage("error malloc ptr");
   *ptr = 123;
-  addToTree(a, (char *) "ptr", ptr);
+  addToTree(a, (char *) "ptr", ptr, 1);
   displayNodes(a, 1, Float);
   delNode(getNode(a, "ptr"), 1);
   displayNodes(a, 1, Float);
@@ -228,11 +234,11 @@ int main(int argc, char const *argv[]) {
   displayNodes(b, 1, Float);
 
   treeList c = initTree();
-  addToTree(c, (char *) "ok", (void *) "dacc");
-  addToTree(c, (char *) "op", (void *) "sudo");
-  addToTree(c, (char *) "dacc", (void *) "del2");
-  addToTree(c, (char *) "dac", (void *) "del1");
-  addToTree(c, (char *) "daz", (void *) "apres");
+  addToTree(c, (char *) "ok", (void *) "dacc", 1);
+  addToTree(c, (char *) "op", (void *) "sudo", 1);
+  addToTree(c, (char *) "dacc", (void *) "del2", 1);
+  addToTree(c, (char *) "dac", (void *) "del1", 1);
+  addToTree(c, (char *) "daz", (void *) "apres", 1);
   displayNodes(c, 1, String);
   treeList aNode = getNode(c, "dac");
   displayNodes(aNode, 1, String);
@@ -242,7 +248,7 @@ int main(int argc, char const *argv[]) {
   delNode(getNode(c, "dacc"), 0);
   displayNodes(c, 1, String);
 
-  addToTree(c, (char *) "opppp", (void *) "del3");
+  addToTree(c, (char *) "opppp", (void *) "del3", 1);
   displayNodes(c, 1, String);
   delNode(getNode(c, "opppp"), 0);
   displayNodes(c, 1, String);

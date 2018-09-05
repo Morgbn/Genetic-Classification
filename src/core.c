@@ -18,11 +18,13 @@ doc * getData(const char * path, int * len) {
 
   int nDoc = 0, nTerm = 0, sumO = 0;          // nb de doc, nb de terme, somme des occurrences
   doc *docList = NULL;                        // liste regroupant tt les documents
-  int *maxO = NULL;                           // fréquence brute max de chq doc
+
   treeList termInNDoc = initTree();           // termInNDoc[terme] = int * nb de doc ou present
   treeList occOfTerms = initTree();           // occOfTerms[terme] = int * nb_occurrence
-  treeList listTerms = initTree();            // listTerms[chemin] = char ** terms
+  char ** *listTerms = NULL;
+  int *maxO = NULL;                           // fréquence brute max de chq doc
   int *nTermIn = NULL;                        // nb de termes pr chq document
+  int *nTermRead = NULL;
   char **filenames = NULL;                    // nom de chq document
 
   while ((file = readdir(dr)) != NULL) {      // lire les fichiers d'un dossier
@@ -35,30 +37,33 @@ doc * getData(const char * path, int * len) {
     nTermIn = (int *) realloc(nTermIn, (nDoc+1)*sizeof(int));
     if (nTermIn == NULL) usage("error realloc in getData");
 
-    if (LUHN_ON_ALL) {
-      filenames = (char **) realloc(filenames, (nDoc+1)*sizeof(char *));
-      if (filenames == NULL) usage("error realloc in getData");
-    }
+    nTermRead = (int *) realloc(nTermRead, (nDoc+1)*sizeof(int));
+    if (nTermRead == NULL) usage("error realloc in getData");
+
+    filenames = (char **) realloc(filenames, (nDoc+1)*sizeof(char *));
+    if (filenames == NULL) usage("error realloc in getData");
+
+    listTerms = (char ***) realloc(listTerms, (nDoc+1)*sizeof(char **));
+    if (listTerms == NULL) usage("error realloc in getData");
 
     char pathname[256];
     if (path[strlen(path)-1] == '/')          // besoin de rajouter '/' ?
       sprintf(pathname, "%s%s", path, file->d_name);
     else sprintf(pathname, "%s/%s", path, file->d_name);
-    if (LUHN_ON_ALL) filenames[nDoc] = strdup(pathname);
+    filenames[nDoc] = strdup(pathname);
 
     char **terms = readFile(pathname, &nTermIn[nDoc], 0);
-    if (LUHN_ON_ALL) addToTree(listTerms, pathname, terms);  // ajouter la liste de terme
 
     lemmatisation(terms, nTermIn[nDoc], stopList, wordList); // lemmatiser tt les mots
+    listTerms[nDoc] = terms;
 
     treeList aDoc = initTree();
-    int cpyNTerm = nTermIn[nDoc];
+    nTermRead[nDoc] = nTermIn[nDoc];
     int nO = 0;
     if (!LUHN_ON_ALL) sumO = 0;               // reset somme
-    for (int i = 0; i < cpyNTerm; i++) {      // pour chq terme
+    for (int i = 0; i < nTermRead[nDoc]; i++) { // pour chq terme
       if (terms[i] == NULL) {                 // terme supprimé
         nTermIn[nDoc]--;
-        free(terms[i]);
         continue;
       }
       if (LUHN_ON_ALL) {
@@ -97,11 +102,8 @@ doc * getData(const char * path, int * len) {
     cleanTree(occOfTerms);
 
     for (int i = 0; i < nDoc; i++) {
-      treeList node = getNode(listTerms, filenames[i]);
-      if (node == NULL) usage("error getNode in getData");
-
-      char ** terms = node->val;
-      treeList aDoc = initTree();             // creer un doc pr cette liste de terme
+      char ** terms = listTerms[nDoc];
+      treeList node, aDoc = initTree();       // creer un doc pr cette liste de terme
       for (int j = 0; j < nTermIn[i]; j++) {
         if (terms[j] == NULL) continue;       // terme supprimé
         if ((node = getNode(occOfTerms, terms[j])))
@@ -124,8 +126,22 @@ doc * getData(const char * path, int * len) {
     }
 
   freeNode(termInNDoc, 1);
-  freeNode(listTerms, 1);
+
+  for (int i = 0; i < nDoc; i++) {
+    for (int j = 0; j < nTermRead[i]; j++)
+      free(listTerms[i][j]);
+    free(listTerms[i]);
+  }
+  free(listTerms);
+
   freeNode(occOfTerms, 1);
+  freeNode(stopList, 0);
+  freeNode(wordList, 1);
+  free(maxO);
+  free(nTermIn);
+  free(nTermRead);
+  for (int i = 0; i < nDoc; i++) free(filenames[i]);
+  free(filenames);
 
   closedir(dr);
   *len = nDoc;
@@ -141,7 +157,7 @@ int addTermInTree(treeList tree, char * term, int inc) {
     else if (inc) (*(float *) node->val)++;   // ajouter une occurrence
     return (int) (*(float *) node->val);
   }
-  addToTree(tree, term, pFloat(1));           // // pas de chemin vers le terme ? → l'ajouter
+  addToTree(tree, term, pFloat(1), 1);        // pas de chemin vers le terme ? → l'ajouter
   return 1;
 }
 
