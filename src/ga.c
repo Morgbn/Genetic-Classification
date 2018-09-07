@@ -15,7 +15,7 @@ double ProbCross = .95, ProbMut   = .02;
 double GlobalFitness, Average, MaxFit, MinFit;
 Population Pop1, Pop2;
 
-doc *** GA(doc *docs, int nDoc, int * nClu, const int minK, const int maxK) {
+int * GA(doc *docs, int nDoc, int * nClu, const int minK, const int maxK) {
   assert(!(PopSize%2)); // si mvs réglage
   if (nDoc < 2)         // regroupe pas - de 2 doc
     usage("Le dossier ne contient qu'un fichier!");
@@ -38,40 +38,20 @@ doc *** GA(doc *docs, int nDoc, int * nClu, const int minK, const int maxK) {
   }
   *nClu = ind->Len;
 
-  // faire de la place pour la liste de liste de document
-  doc ***clusters = (doc ***) malloc(*nClu * sizeof(doc **));
-  if (clusters == NULL) usage("error malloc in GA");
-  for (int i = 0; i < *nClu; i++) {
-    clusters[i] = (doc **) malloc((nDoc+2) * sizeof(doc *));
-    if (clusters[i] == NULL) usage("error malloc in GA");
+  int *centers = (int *) calloc(ind->Len, sizeof(int));
+  if (centers == NULL) usage("error malloc in GA");
+
+  for (int i = 0; i < ind->Len; i++) {
+    if (centers[i] >= 0 && centers[i] <= nDoc)
+      centers[i] = ind->Gtype[i];
+    else centers[i] = -1; // centre invalide (centre gen par mutation)
   }
-
-  int nIn[*nClu]; // nombre de doc ds chq clusters
-  memset(nIn, 0, *nClu * sizeof(int));
-
-  int * ptype = ind->Gtype;
-  for (int ki = 0; ki < *nClu; ki++)          // mettre en tête les centres
-    clusters[ki][nIn[ki]++] = &docs[ptype[ki]];
-
-  for (int i = 0; i < nDoc; i++) {            // pr chq document
-    int bestK = 0;
-    double dmin = docs[i].dist[ptype[0]];
-    for (int ki = 1; ki < *nClu; ki++) {      // trouver sa distance minimal
-      double d = docs[i].dist[ptype[ki]];     // avec l'un des centres
-      if (d < dmin) { dmin = d; bestK = ki; }
-    }
-    if (ptype[bestK] == i) continue;          // déjà ajouter (au début)
-    clusters[bestK][nIn[bestK]++] = &docs[i];
-  }
-
-  for (int i = 0; i < *nClu; i++)             // pr facilement detecter la fin
-    clusters[i][nIn[i]] = NULL;
 
   // FREE variables non retournés
   freePop(Pop1, PopSize);
   freePop(Pop2, PopSize);
 
-  return clusters;
+  return centers;
 }
 
 double objectiveFunc(int * ptype, int K, doc *docs, int nDoc) {
@@ -130,6 +110,8 @@ Population allocPop(const int popSize, const int k) {
 
     pop[i]->Gtype = (int *) calloc(k, sizeof(int));
     if (pop[i]->Gtype == NULL) usage("malloc error in genPops");
+
+    pop[i]->Ptype = NULL; pop[i]->Len = k; pop[i]->Fitness = 0;
   }
   return pop;
 }
@@ -152,10 +134,16 @@ void copyPop(Population pop, Population copy) {
   }
 }
 
-int genPops_cmpfunc(const void * a, const void * b) {
-  indiv ind1 = (indiv) a;
-  indiv ind2 = (indiv) b;
-  return (ind1->Fitness < ind2->Fitness) ? 1 : (ind1->Fitness > ind2->Fitness) ? -1 : 0;
+void shortPop(Population pop, int size) {
+  for (int i = 0; i < size; i++) {            //Loop for ascending ordering
+		for (int j = 0; j < size; j++) {          //Loop for comparing other values
+			if (pop[j]->Fitness < pop[i]->Fitness) {//Comparing other array elements
+				indiv tmp = pop[i];                   //Using temporary variable for storing last value
+				pop[i] = pop[j];                      //replacing value
+				pop[j] = tmp;                         //storing last value
+			}
+		}
+	}
 }
 
 void genPops(const int minK, const int maxK, doc *docs, int nDoc) {
@@ -168,7 +156,7 @@ void genPops(const int minK, const int maxK, doc *docs, int nDoc) {
   }
 
   // trier bigPop pr avoir meilleur en haut
-  qsort(bigPop, PopSize * multPop0, sizeof(indiv), genPops_cmpfunc);
+  shortPop(bigPop, PopSize * multPop0);
 
   Pop2 = allocPop(PopSize, maxK);
   Pop1 = allocPop(PopSize, maxK);
@@ -206,6 +194,7 @@ void scale(Population pop) {
   }
 	else {                                  // negatif (peu de bons individus)
     delta = Average - MinFit;	            // transformation le plus possible
+    if (delta == 0) return;               // évite erreurs
 		slope = Average / delta;
 		offset = -MinFit * Average / delta;
   }
@@ -240,8 +229,6 @@ int alleleInChromo(int el, Chromo chromo, int len) {
 }
 
 void copyChromo(Chromo P1, Chromo C1, int k) {
-  C1 = (Chromo) realloc(C1, k * sizeof(int));
-  if (C1 == NULL) usage("error realloc copyChromo");
   for (int i = 0; i < k; i++) C1[i] = mutate(P1[i]);
 }
 

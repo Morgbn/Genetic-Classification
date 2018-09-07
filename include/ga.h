@@ -12,7 +12,7 @@
 
 extern int verboseGa, multPop0, MaxGen, PopSize;
 
-typedef int * Chromo; // maximum 256 cluster
+typedef int * Chromo;
 
 typedef struct { // données d'un individu
   Chromo Gtype;
@@ -32,9 +32,9 @@ typedef indiv * Population;
  * @param  nClu nombre de clusters finaux
  * @param  minK nombre minimal de cluster
  * @param  maxK nombre maximal de cluster
- * @return      liste de groupe de document
+ * @return      liste de centres
  */
-doc *** GA(doc *docs, int nDoc, int * nClu, const int minK, const int maxK);
+int * GA(doc *docs, int nDoc, int * nClu, const int minK, const int maxK);
 
 /**
  * Fonction objectif
@@ -103,6 +103,13 @@ int * decode(Chromo Gtype, int K);
  * @return      valeur
  */
 int decodeSpec(char * spec);
+
+/**
+ * Trier une population (à optimiser ?)
+ * @param pop  population
+ * @param size taille de la population
+ */
+void shortPop(Population pop, int size);
 
 /**
  * Initialise les populations

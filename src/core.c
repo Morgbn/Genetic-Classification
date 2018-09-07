@@ -102,7 +102,7 @@ doc * getData(const char * path, int * len) {
     cleanTree(occOfTerms);
 
     for (int i = 0; i < nDoc; i++) {
-      char ** terms = listTerms[nDoc];
+      char ** terms = listTerms[i];
       treeList node, aDoc = initTree();       // creer un doc pr cette liste de terme
       for (int j = 0; j < nTermIn[i]; j++) {
         if (terms[j] == NULL) continue;       // terme supprimé

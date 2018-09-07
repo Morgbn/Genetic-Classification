@@ -81,8 +81,7 @@ void applyLuhn(treeList head, float min, float max) {
   if (head->val != NULL) {
     if (*(float *) head->val < min
      || *(float *) head->val > max)  {      // freq en dehors du seuil
-      free(head->val);
-      head->val = NULL;
+      delNode(head, 1);
     }
   }
 }

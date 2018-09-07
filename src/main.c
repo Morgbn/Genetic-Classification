@@ -68,18 +68,40 @@ int main(int argc, char const *argv[]) {
 
   if (maxK == -1) maxK = (nDoc > 5) ? nDoc / 3 : 2; // par défaut
   if (minK == -1) minK = 2;
+  if (minK > maxK) usage("L'option --min prend comme argument un nombre inférieur à l'argument de --max.");
 
   int nCluster;
-  doc *** clusteredDoc = GA(docs, nDoc, &nCluster, minK, maxK);
+  int * centers = GA(docs, nDoc, &nCluster, minK, maxK);
 
-  for (int i = 0; i < nCluster; i++) {
-    printf("Cluster n%i:\n", i);
-    for (int j = 0; clusteredDoc[i][j]; j++)
-      printf("\t%s\n", clusteredDoc[i][j]->name);
+  int clusteredIn[nDoc];
+  for (int i = 0; i < nDoc; i++) {
+    int bestK = 0;
+    double dmin = docs[i].dist[centers[0]];
+    for (int k = 1; k < nCluster; k++) {
+      if (docs[i].dist[centers[k]] < dmin) {
+        dmin = docs[i].dist[centers[k]];
+        bestK = k;
+      }
+    }
+    clusteredIn[i] = centers[bestK];
   }
 
-  for (int i = 0; i < nCluster; i++) free(clusteredDoc[i]);
-  free(clusteredDoc);
+  for (int k = 0; k < nCluster; k++) {
+    printf("Cluster n%i:\n", k);
+    printf("\t%s\n", docs[centers[k]].name);
+    for (int i = 0; i < nDoc; i++) {
+      if (clusteredIn[i] == centers[k] && centers[k] != i)
+        printf("\t%s\n", docs[i].name);
+    }
+  }
+
+  free(centers);
+  for (int i = 0; i < nDoc; i++) {
+    free(docs[i].name);
+    freeNode(docs[i].terms, 1);
+    free(docs[i].dist);
+  }
+  free(docs);
 
   return 0;
 }
