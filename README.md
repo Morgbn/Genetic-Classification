@@ -21,6 +21,15 @@ Pour plus d'informations concernant l'utilisation du programme :
 $ bin/classifier --help
 ```
 
+# Exemple
+
+```sh
+$ chmod +x getData.sh
+$ getData.sh # télécharger des données d'essai
+$ bin/classifier data-test
+```
+
+
 ## License
 
 Le projet est sous licence gpl-3.0 - voir le fichier [LICENSE](LICENSE) pour plus de détails.
